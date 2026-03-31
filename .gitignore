@@ -1,0 +1,16 @@
+# Binaries
+/api
+/worker
+
+# Go build cache
+*.test
+*.out
+
+# Environment files
+.env
+.env.*
+
+# IDE
+.idea/
+.vscode/
+*.swp
