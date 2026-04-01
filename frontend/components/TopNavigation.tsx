@@ -4,6 +4,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { Logo } from "@/components/Logo";
 
 export interface NavLink {
   label: string;
@@ -32,7 +33,7 @@ export default function TopNavigation({ navLinks }: TopNavigationProps) {
     <header className="fixed top-0 z-50 w-full bg-surface/80 backdrop-blur-xl shadow-ambient">
       <div className="mx-auto flex w-full max-w-[1920px] items-center justify-between px-6 py-3">
         <div className="flex items-center gap-8">
-          <span className="text-xl font-bold tracking-tighter text-on-surface">The Editorial Ledger</span>
+          <Logo />
           <nav className="hidden items-center gap-6 md:flex">
             {links.map((link) => (
               <Link

@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import TopNavigation from "@/components/TopNavigation";
 import Sidebar from "@/components/Sidebar";
+import { useMapStyle, MapStyleType } from "@/components/MapStyleProvider";
 
 const topNavLinks = [
   { label: "Market Map", href: "/" },
@@ -16,6 +19,8 @@ const alerts = [
 ];
 
 export default function SettingsPage() {
+  const { mapStyle, setMapStyle } = useMapStyle();
+
   return (
     <div className="min-h-screen bg-surface text-on-surface">
       <TopNavigation navLinks={topNavLinks} />
@@ -134,6 +139,42 @@ export default function SettingsPage() {
                       <p className="text-sm font-bold">Export Analytical Raw</p>
                       <p className="mt-2 text-[10px] uppercase tracking-widest opacity-70">CSV Format (Standardized)</p>
                     </div>
+                  </div>
+                </section>
+
+                <section className="space-y-6">
+                  <h4 className="flex items-center gap-4 text-sm font-black uppercase tracking-widest text-on-surface-variant">
+                    <span className="h-1 w-12 bg-secondary/20" aria-hidden />
+                    Visualization Preferences
+                  </h4>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {([
+                      { id: "dark-matter", label: "Dark Matter", desc: "High contrast UI with minimal light pollution" },
+                      { id: "positron", label: "Positron", desc: "Clean & bright for daylight analysis" },
+                      { id: "voyager", label: "Voyager", desc: "Detailed street data and POIs" },
+                      { id: "satellite", label: "Satellite", desc: "High-resolution global imagery" },
+                    ] as const).map((style) => (
+                      <div 
+                        key={style.id}
+                        onClick={() => setMapStyle(style.id as MapStyleType)}
+                        className={`group cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                          mapStyle === style.id 
+                            ? "border-secondary bg-secondary/10" 
+                            : "border-transparent bg-surface-container-lowest hover:border-outline/50"
+                        }`}
+                      >
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className={`font-bold ${mapStyle === style.id ? "text-secondary" : "text-on-surface"}`}>
+                            {style.label}
+                          </p>
+                          <span className={`material-symbols-outlined text-xl ${mapStyle === style.id ? "text-secondary" : "text-on-surface-variant opacity-0 transition group-hover:opacity-50"}`}>
+                            check_circle
+                          </span>
+                        </div>
+                        <p className="text-xs text-on-surface-variant">{style.desc}</p>
+                      </div>
+                    ))}
                   </div>
                 </section>
               </div>

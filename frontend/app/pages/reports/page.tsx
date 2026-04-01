@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   description:
     "Institutional-grade rental data and historical volatility analysis for verified properties.",
 };
+import { Logo } from "@/components/Logo";
 
 const navLinks = [
   { label: "Market Map", href: "/" },
@@ -67,9 +68,7 @@ export default function ReportsPage() {
       {/* Top Header Bar */}
       <header className="fixed left-64 right-0 top-0 z-50 flex items-center justify-between bg-surface-container-low/80 px-10 py-4 backdrop-blur-xl">
         <div className="flex items-center gap-8">
-          <span className="text-xl font-bold tracking-tighter text-on-surface">
-            TrueMetric Finance
-          </span>
+          <Logo />
           <nav className="hidden items-center gap-6 md:flex" aria-label="Top navigation">
             {reportNavLinks.map((link) => (
               <a

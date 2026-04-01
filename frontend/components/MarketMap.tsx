@@ -75,7 +75,7 @@ export default function MarketMap({ properties, regionDelta = -12.4, onBoundsCha
               maxzoom: 22
             }
           ]
-        };
+        } as any;
       default:
         // Use system theme as ultimate fallback
         return resolvedTheme === "dark"
@@ -100,7 +100,7 @@ export default function MarketMap({ properties, regionDelta = -12.4, onBoundsCha
           {...viewState}
           onMove={handleMove}
           onMoveEnd={handleMoveEnd}
-          mapStyle={mapStyleUrl}
+          mapStyle={mapStyleUrl as any}
           reuseMaps
           scrollZoom
         >
