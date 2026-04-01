@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import TopNavigation from "@/components/TopNavigation";
-import Sidebar from "@/components/Sidebar";
+import AppLayout from "@/components/AppLayout";
 import ListingsFeed from "@/components/ListingsFeed";
 import MarketMap from "@/components/MarketMap";
 import { useProperties } from "@/hooks/useProperties";
@@ -67,6 +66,7 @@ const sampleProperties: Property[] = [
   },
 ];
 
+
 export default function Page() {
   const [mapBounds, setMapBounds] = useState("-74.1,40.7,-73.9,40.8");
   const { data, isFetching, isError } = useProperties(mapBounds, { enabled: Boolean(mapBounds) });
@@ -74,17 +74,11 @@ export default function Page() {
   const properties = useMemo(() => data ?? sampleProperties, [data]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-surface text-on-surface">
-      <TopNavigation navLinks={navLinks} />
-      <main className="flex flex-1 overflow-hidden">
-        <Sidebar className="!top-[60px] !h-[calc(100vh-60px)]" />
-        <div className="flex w-full flex-1 flex-col overflow-hidden pt-[60px] lg:pl-64">
-          <div className="flex flex-1 overflow-hidden relative">
-            <ListingsFeed properties={properties} resultsCount={properties.length} filters={filters} isLoading={isFetching} isError={isError} />
-            <MarketMap properties={properties} regionDelta={-12.4} onBoundsChange={setMapBounds} />
-          </div>
-        </div>
-      </main>
-    </div>
+    <AppLayout navLinks={navLinks} noScroll={true}>
+      <div className="flex flex-1 overflow-hidden relative">
+        <ListingsFeed properties={properties} resultsCount={properties.length} filters={filters} isLoading={isFetching} isError={isError} />
+        <MarketMap properties={properties} regionDelta={-12.4} onBoundsChange={setMapBounds} />
+      </div>
+    </AppLayout>
   );
 }

@@ -1,5 +1,4 @@
-import TopNavigation from "@/components/TopNavigation";
-import Sidebar from "@/components/Sidebar";
+import AppLayout from "@/components/AppLayout";
 import MacroTrendsGrid from "@/components/reports/MacroTrendsGrid";
 import SavedReportCard from "@/components/reports/SavedReportCard";
 import DataExportBanner from "@/components/reports/DataExportBanner";
@@ -64,98 +63,42 @@ const SAVED_REPORTS: SavedReportCardProps[] = [
 
 export default function ReportsPage() {
   return (
-    <div className="min-h-screen bg-surface text-on-surface">
-      {/* Top Header Bar */}
-      <header className="fixed left-64 right-0 top-0 z-50 flex items-center justify-between bg-surface-container-low/80 px-10 py-4 backdrop-blur-xl">
-        <div className="flex items-center gap-8">
-          <Logo />
-          <nav className="hidden items-center gap-6 md:flex" aria-label="Top navigation">
-            {reportNavLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className={
-                  link.active
-                    ? "border-b-2 border-[#10B981] pb-1 text-sm font-semibold tracking-tight text-[#10B981]"
-                    : "text-sm tracking-tight text-on-surface-variant transition-colors hover:text-on-surface"
-                }
-              >
-                {link.label}
-              </a>
+    <AppLayout navLinks={reportNavLinks}>
+      <div className="mx-auto w-full max-w-[1920px] px-8 py-10 lg:px-12">
+        {/* Hero */}
+        <header className="mb-16 mt-4">
+          <h2 className="mb-3 text-5xl font-black tracking-tight text-[#0A192F]">
+            Portfolio Analytics &amp; Market Reports
+          </h2>
+          <p className="max-w-2xl text-lg font-medium text-on-surface-variant">
+            Institutional-grade rental data and historical volatility analysis.
+          </p>
+        </header>
+
+        {/* Macro Trends */}
+        <MacroTrendsGrid />
+
+        {/* Saved Property Reports */}
+        <section className="mb-20" aria-labelledby="saved-reports-heading">
+          <h3
+            id="saved-reports-heading"
+            className="mb-8 text-2xl font-bold tracking-tight text-on-surface"
+          >
+            Saved Property Reports
+          </h3>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {SAVED_REPORTS.map((report) => (
+              <SavedReportCard key={report.title} {...report} />
             ))}
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="rounded-lg p-2 text-on-surface-variant transition-all hover:bg-surface-container active:scale-95"
-            aria-label="Notifications"
-          >
-            <span className="material-symbols-outlined text-xl" aria-hidden="true">
-              notifications
-            </span>
-          </button>
-          <button
-            type="button"
-            className="rounded-lg p-2 text-on-surface-variant transition-all hover:bg-surface-container active:scale-95"
-            aria-label="Settings"
-          >
-            <span className="material-symbols-outlined text-xl" aria-hidden="true">
-              settings
-            </span>
-          </button>
-          <div className="h-8 w-8 overflow-hidden rounded-full bg-surface-container-high">
-            <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaYwCZ3W628gxk2Xav1n1XpQeFQ7klGFBHtFAbSELHRrUOJBplZB9T3plna_j2caxHM1_aQA2ExLz7zyOWnO6qoJFHNANE8wEj2tp-dMeLRbslf5FJFi6pSOuUt4n3qzltvKJ-UlWThHmGIv3Hr8A7KiR0L2FKT58zl5x4_kjI2YWP3P4qTOO6obZyZ_CVbxZSVHROVBpU8ffu7bEQzyPBR2DY1TU7OK3X2WXKTbq7jYzlGb2oj8TxD-ORp957Wv02vgA1gu1eFP6r"
-              alt="User profile"
-              className="h-full w-full object-cover"
-            />
           </div>
-        </div>
-      </header>
+        </section>
 
-      <div className="flex min-h-screen">
-        {/* Sidebar */}
-        <Sidebar />
+        {/* Data Exports CTA */}
+        <DataExportBanner />
 
-        {/* Main Content */}
-        <main className="ml-64 min-h-screen flex-1 px-12 pb-20 pt-24">
-          {/* Hero */}
-          <header className="mb-16">
-            <h2 className="mb-3 text-5xl font-black tracking-tight text-[#0A192F]">
-              Portfolio Analytics &amp; Market Reports
-            </h2>
-            <p className="max-w-2xl text-lg font-medium text-on-surface-variant">
-              Institutional-grade rental data and historical volatility analysis.
-            </p>
-          </header>
-
-          {/* Macro Trends */}
-          <MacroTrendsGrid />
-
-          {/* Saved Property Reports */}
-          <section className="mb-20" aria-labelledby="saved-reports-heading">
-            <h3
-              id="saved-reports-heading"
-              className="mb-8 text-2xl font-bold tracking-tight text-on-surface"
-            >
-              Saved Property Reports
-            </h3>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-              {SAVED_REPORTS.map((report) => (
-                <SavedReportCard key={report.title} {...report} />
-              ))}
-            </div>
-          </section>
-
-          {/* Data Exports CTA */}
-          <DataExportBanner />
-
-          {/* System Footer */}
-          <SystemStatusBar />
-        </main>
+        {/* System Footer */}
+        <SystemStatusBar />
       </div>
-    </div>
+    </AppLayout>
   );
 }

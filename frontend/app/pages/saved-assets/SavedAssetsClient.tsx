@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Sidebar from "@/components/Sidebar";
@@ -48,6 +48,9 @@ type SegmentDraft = {
   metric: string;
   change: string;
 };
+
+const SEGMENTS_STORAGE_KEY = "saved-assets:user-segments";
+const DISMISSED_STORAGE_KEY = "saved-assets:dismissed";
 
 function normalizeAssets(data?: Property[]): DerivedAsset[] {
   if (!data) return [];
@@ -126,11 +129,12 @@ function Sparkline({ propertyId }: { propertyId: string | number }) {
 
   if (!points.length) {
     return (
-      <div className="mt-2 flex h-4 w-24 items-end gap-0.5" aria-hidden>
-        {[12, 14, 10, 16, 9].map((h, idx) => (
-          <span key={idx} className="flex-1 rounded-full bg-surface-container-high" style={{ height: `${h}px` }} />
-        ))}
-      </div>
+      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-surface-container px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
+        <span className="material-symbols-outlined text-base" aria-hidden>
+          insights_off
+        </span>
+        No history yet
+      </span>
     );
   }
 
@@ -176,6 +180,7 @@ export default function SavedAssetsClient() {
   const [userSegments, setUserSegments] = useState<Segment[]>([]);
   const [isAddingSegment, setIsAddingSegment] = useState(false);
   const [draft, setDraft] = useState<SegmentDraft>({ city: "", label: "", metric: "", change: "" });
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const { data, isLoading, isFetching } = useProperties(DEFAULT_BOUNDS, { enabled: true });
 
@@ -213,6 +218,11 @@ export default function SavedAssetsClient() {
     setDismissedIds((prev) => {
       const next = new Set(prev);
       next.add(id);
+      try {
+        localStorage.setItem(DISMISSED_STORAGE_KEY, JSON.stringify(Array.from(next)));
+      } catch (error) {
+        console.warn("Failed to persist dismissed ids", error);
+      }
       return next;
     });
   };
@@ -227,19 +237,53 @@ export default function SavedAssetsClient() {
     if (!draft.city || Number.isNaN(parsedChange)) return;
 
     const sentiment: TrendDirection = parsedChange < -0.2 ? "down" : parsedChange > 0.2 ? "up" : "stable";
-    setUserSegments((prev) => [
-      ...prev,
-      {
-        city: draft.city,
-        label: draft.label || draft.city,
-        metric: draft.metric || "User segment",
-        change: Math.round(parsedChange * 10) / 10,
-        sentiment,
-      },
-    ]);
+    setUserSegments((prev) => {
+      const next = [
+        ...prev,
+        {
+          city: draft.city,
+          label: draft.label || draft.city,
+          metric: draft.metric || "User segment",
+          change: Math.round(parsedChange * 10) / 10,
+          sentiment,
+        },
+      ];
+      try {
+        localStorage.setItem(SEGMENTS_STORAGE_KEY, JSON.stringify(next));
+      } catch (error) {
+        console.warn("Failed to persist segments", error);
+      }
+      return next;
+    });
     setDraft({ city: "", label: "", metric: "", change: "" });
     setIsAddingSegment(false);
   };
+
+  // Hydrate saved state from localStorage once on mount.
+  useEffect(() => {
+    try {
+      const savedSegments = localStorage.getItem(SEGMENTS_STORAGE_KEY);
+      if (savedSegments) {
+        const parsed: Segment[] = JSON.parse(savedSegments);
+        setUserSegments(parsed);
+      }
+
+      const savedDismissed = localStorage.getItem(DISMISSED_STORAGE_KEY);
+      if (savedDismissed) {
+        const parsed: Array<string | number> = JSON.parse(savedDismissed);
+        setDismissedIds(new Set(parsed));
+      }
+    } catch (error) {
+      console.warn("Failed to hydrate saved assets state", error);
+    } finally {
+      setIsHydrated(true);
+    }
+  }, []);
+
+  // Avoid rendering mismatches during hydration.
+  if (!isHydrated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-surface text-on-surface">
