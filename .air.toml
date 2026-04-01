@@ -1,0 +1,12 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/api.exe ./Server/cmd/api"
+bin = "tmp/api.exe"
+include_ext = ["go"]
+exclude_dir = ["tmp", "frontend", "node_modules", ".git"]
+delay = 1000
+
+[log]
+time = true

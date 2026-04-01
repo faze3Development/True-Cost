@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-surface text-on-surface font-sans antialiased;
+  }
+
+  ::selection {
+    background: theme(colors.secondary / 0.16);
+    color: theme(colors.on-surface);
+  }
+}
+
+@layer components {
+  .ghost-border {
+    border: 1px solid theme(colors.outline-variant / 0.15);
+  }
+}
