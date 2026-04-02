@@ -3,8 +3,17 @@
 import Link from "next/link";
 import clsx from "clsx";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
+import {
+  TOP_NAV_CONFIG_STORAGE_KEY,
+  TOP_NAV_CONFIG_UPDATED_EVENT,
+  getVisibleNavLinksForPath,
+  parseTopNavRuntimeConfig,
+  type TopNavRuntimeConfig,
+} from "@/routes";
 import { Logo } from "@/components/Logo";
+import { updateUserSettings } from "@/api/user";
 
 export interface NavLink {
   label: string;
@@ -17,12 +26,55 @@ export interface TopNavigationProps {
 }
 
 export default function TopNavigation({ navLinks }: TopNavigationProps) {
-  const links: NavLink[] =
-    navLinks ?? [
-      { label: "Market Map", href: "#", active: true },
-      { label: "Property Insights", href: "#" },
-      { label: "Cost Calculator", href: "#" },
-    ];
+  const pathname = usePathname();
+  const [runtimeConfig, setRuntimeConfig] = useState<TopNavRuntimeConfig | null>(null);
+
+  useEffect(() => {
+    const loadRuntimeConfig = () => {
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      const raw = window.localStorage.getItem(TOP_NAV_CONFIG_STORAGE_KEY);
+      if (!raw) {
+        setRuntimeConfig(null);
+        return;
+      }
+
+      setRuntimeConfig(parseTopNavRuntimeConfig(raw));
+    };
+
+    const onConfigUpdate = () => loadRuntimeConfig();
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === TOP_NAV_CONFIG_STORAGE_KEY) {
+        loadRuntimeConfig();
+      }
+    };
+
+    loadRuntimeConfig();
+    window.addEventListener(TOP_NAV_CONFIG_UPDATED_EVENT, onConfigUpdate);
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.removeEventListener(TOP_NAV_CONFIG_UPDATED_EVENT, onConfigUpdate);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
+  const links: NavLink[] = useMemo(() => {
+    const base = navLinks ?? getVisibleNavLinksForPath(pathname ?? "/", true, true, runtimeConfig ?? undefined);
+
+    return base.map((link) => {
+      const isActive =
+        "active" in link && typeof link.active === "boolean"
+          ? link.active
+          : pathname
+            ? pathname === link.href || pathname.startsWith(`${link.href}/`)
+            : false;
+
+      return { ...link, active: isActive };
+    });
+  }, [navLinks, pathname, runtimeConfig]);
 
   // Theme support
   const { theme, setTheme } = useTheme();
@@ -74,7 +126,13 @@ export default function TopNavigation({ navLinks }: TopNavigationProps) {
           
           <button
             type="button"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            onClick={() => {
+              const newTheme = theme === 'dark' ? 'light' : 'dark';
+              setTheme(newTheme);
+              updateUserSettings("theme", newTheme).catch((err) =>
+                console.warn("Failed to persist theme setting", err)
+              );
+            }}
             className="rounded-lg bg-surface-container-low px-2 py-2 text-on-surface-variant transition-colors hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             aria-label="Toggle Dark Mode"
           >

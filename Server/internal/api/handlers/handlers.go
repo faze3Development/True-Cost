@@ -11,12 +11,17 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/faze3Development/true-cost/Server/internal/infrastructure/stripe"
+	"github.com/faze3Development/true-cost/Server/internal/infrastructure/user"
 	"github.com/faze3Development/true-cost/Server/internal/models"
 )
 
 // Handler groups route handler methods and their dependencies.
 type Handler struct {
-	DB *gorm.DB
+	DB      *gorm.DB
+	User    user.Service
+	Stripe  *stripe.Service
+	Webhook *stripe.WebhookService
 }
 
 // propertyResponse shapes property data for the map pins and listings feed.
@@ -36,8 +41,13 @@ type propertyResponse struct {
 }
 
 // New returns an initialised Handler.
-func New(db *gorm.DB) *Handler {
-	return &Handler{DB: db}
+func New(db *gorm.DB, userService user.Service, stripeSvc *stripe.Service, webhookSvc *stripe.WebhookService) *Handler {
+	return &Handler{
+		DB:      db,
+		User:    userService,
+		Stripe:  stripeSvc,
+		Webhook: webhookSvc,
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +101,7 @@ func (h *Handler) ListProperties(c *gin.Context) {
 			Longitude:      p.Longitude,
 			AdvertisedRent: advertised,
 			TrueCost:       trueCost,
+			ImageURL:       p.ImageURL,
 			IsVerified:     p.FeeStructure.ID != 0,
 		})
 	}

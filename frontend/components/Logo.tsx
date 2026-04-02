@@ -24,18 +24,18 @@ export function Logo({ className }: { className?: string }) {
           fontFamily="system-ui, -apple-system, sans-serif"
           fontWeight="900"
           fontSize="44"
-          fill="#0A192F"
+          fill="currentColor"
           textAnchor="middle"
           letterSpacing="-1.5"
         >
           TC
         </text>
       </svg>
-      <div className="flex flex-col pt-0.5">
-        <span className="text-[19px] font-bold leading-none tracking-tight text-[#0A192F]">
+      <div className="flex flex-col pt-0.5" style={{ color: "currentColor" }}>
+        <span className="text-[19px] font-bold leading-none tracking-tight">
           TrueCost
         </span>
-        <span className="text-[14px] font-medium leading-tight tracking-[0.02em] text-[#0A192F]/80">
+        <span className="text-[14px] font-medium leading-tight tracking-[0.02em] opacity-80">
           Rent
         </span>
       </div>

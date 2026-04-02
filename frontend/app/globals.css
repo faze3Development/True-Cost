@@ -21,4 +21,18 @@
   .ghost-border {
     border: 1px solid theme(colors.outline-variant / 0.15);
   }
+
+  .editorial-tight {
+    letter-spacing: -0.02em;
+  }
+
+  .label-refined {
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .no-line-input {
+    border: none !important;
+    box-shadow: none !important;
+  }
 }

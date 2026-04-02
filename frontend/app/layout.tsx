@@ -4,6 +4,7 @@ import "./globals.css";
 import { QueryProvider } from "@/components/QueryProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { MapStyleProvider } from "@/components/MapStyleProvider";
+import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
@@ -28,9 +29,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           enableSystem
           disableTransitionOnChange
         >
-          <MapStyleProvider>
-            <QueryProvider>{children}</QueryProvider>
-          </MapStyleProvider>
+          <QueryProvider>
+            <AuthProvider>
+              <MapStyleProvider>
+                {children}
+              </MapStyleProvider>
+            </AuthProvider>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

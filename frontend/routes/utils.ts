@@ -2,7 +2,13 @@
  * Route utilities and helpers for navigation and authorization.
  */
 
-import { TOP_NAV_LINKS, SIDEBAR_NAV_LINKS, isProtectedRoute, isAdminRoute } from "./navigation";
+import {
+  SIDEBAR_NAV_LINKS,
+  getTopNavLinksForPath,
+  type TopNavRuntimeConfig,
+  isProtectedRoute,
+  isAdminRoute,
+} from "./navigation";
 
 /**
  * Check if user can access a route.
@@ -32,9 +38,24 @@ export const canAccessRoute = (
  */
 export const getVisibleNavLinks = (
   isAuthenticated: boolean = false,
-  isAdmin: boolean = false
+  isAdmin: boolean = false,
+  runtimeConfig?: Partial<TopNavRuntimeConfig>
 ) => {
-  return TOP_NAV_LINKS.filter((link) =>
+  return getVisibleNavLinksForPath("/", isAuthenticated, isAdmin, runtimeConfig);
+};
+
+/**
+ * Get filtered top navigation links for a specific pathname.
+ */
+export const getVisibleNavLinksForPath = (
+  pathname: string,
+  isAuthenticated: boolean = false,
+  isAdmin: boolean = false,
+  runtimeConfig?: Partial<TopNavRuntimeConfig>
+) => {
+  const links = getTopNavLinksForPath(pathname, runtimeConfig);
+
+  return links.filter((link) =>
     canAccessRoute(link.href, isAuthenticated, isAdmin)
   );
 };

@@ -171,6 +171,7 @@ Configuration is loaded from environment variables. The only **required** variab
 | `DB_SSLMODE` | `disable` | PostgreSQL SSL mode |
 | `REDIS_ADDR` | `localhost:6379` | Redis address (worker only) |
 | `PORT` | `8080` | HTTP listen port |
+| `ADMIN_BOOTSTRAP_SECRET` | *(empty)* | One-time secret required to call `POST /api/v1/admin/bootstrap` for first admin promotion |
 
 ---
 
@@ -188,6 +189,28 @@ Configuration is loaded from environment variables. The only **required** variab
 ```bash
 export DB_PASSWORD=your_password
 go run ./cmd/api
+```
+
+### Bootstrap First Admin (One-Time)
+
+1. Set `ADMIN_BOOTSTRAP_SECRET` in `Server/.env`.
+2. Start the API service so migrations run.
+3. Ensure at least one user exists in `users` (sign in once through the app).
+4. Promote the first admin with:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/admin/bootstrap \
+        -H "Content-Type: application/json" \
+        -H "X-Admin-Bootstrap-Secret: <your-secret>" \
+        -d '{"email":"admin@example.com"}'
+```
+
+After the first successful bootstrap, rotate or remove `ADMIN_BOOTSTRAP_SECRET`.
+
+Windows shortcut:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Server/scripts/bootstrap-admin.ps1 -Email "admin@example.com" -Secret "<your-secret>"
 ```
 
 ### Run the Worker

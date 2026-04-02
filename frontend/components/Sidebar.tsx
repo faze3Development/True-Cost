@@ -80,21 +80,24 @@ export default function Sidebar({ links = SIDEBAR_NAV_LINKS, className }: Sideba
       </nav>
 
       {/* Bottom CTA */}
-      <div className="mt-auto space-y-3 pt-8">
-        <button
-          type="button"
-          className="w-full rounded-xl bg-primary px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white shadow-ambient transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
-        >
-          Upgrade to Pro
-        </button>
+      <div className="mt-auto space-y-1 pt-8">
         <Link
-          href="/pages/settings"
-          className="flex w-full items-center gap-2 px-2 py-2 text-xs font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
+          href="/settings"
+          className="group flex items-center px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl text-xs font-bold uppercase tracking-widest hover:text-on-surface hover:translate-x-0.5 duration-200"
         >
-          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+          <span className="material-symbols-outlined shrink-0 text-[20px] leading-none mr-3" aria-hidden="true">
             settings
           </span>
           Settings
+        </Link>
+        <Link
+          href="/login"
+          className="group flex items-center px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl text-xs font-bold uppercase tracking-widest hover:text-on-surface hover:translate-x-0.5 duration-200"
+        >
+          <span className="material-symbols-outlined shrink-0 text-[20px] leading-none mr-3" aria-hidden="true">
+            logout
+          </span>
+          Sign Out
         </Link>
       </div>
     </aside>

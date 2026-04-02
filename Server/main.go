@@ -8,9 +8,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
+	"strings"
 	"syscall"
 
 	"github.com/hibiken/asynq"
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
 	"github.com/faze3Development/true-cost/Server/internal/config"
@@ -20,8 +23,44 @@ import (
 	"github.com/faze3Development/true-cost/Server/migrations"
 )
 
+func loadDotEnv() {
+	if strings.ToLower(os.Getenv("ENV")) == "production" {
+		_ = godotenv.Load()
+		return
+	}
+	_ = godotenv.Overload("Server/.env")
+	_ = godotenv.Overload(".env")
+}
+
+func getEnvironment() string {
+	env := os.Getenv("ENV")
+	if env == "" {
+		env = "development"
+	}
+	return strings.ToLower(env)
+}
+
+func getVersion() string {
+	version := os.Getenv("APP_VERSION")
+	if version == "" {
+		if info, ok := debug.ReadBuildInfo(); ok {
+			version = info.Main.Version
+		}
+		if version == "" {
+			version = "dev"
+		}
+	}
+	return version
+}
+
 func main() {
-	logger, err := logging.Init()
+	loadDotEnv()
+
+	env := getEnvironment()
+	version := getVersion()
+
+	// Init matching AI Studio Logger Structure
+	logger, err := logging.Init(env, version)
 	if err != nil {
 		_, _ = os.Stderr.WriteString("logger init failed: " + err.Error() + "\n")
 		os.Exit(1)
@@ -43,6 +82,10 @@ func main() {
 	if err := migrations.Run(database); err != nil {
 		zap.L().Error("migrations failed", zap.Error(err))
 		os.Exit(1)
+	}
+
+	if err := db.SeedTiers(database); err != nil {
+		zap.L().Error("database seeding failed", zap.Error(err))
 	}
 
 	redisOpt := asynq.RedisClientOpt{Addr: cfg.RedisAddr}

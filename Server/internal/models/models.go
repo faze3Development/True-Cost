@@ -19,6 +19,7 @@ type Property struct {
 	Latitude     float64      `gorm:"not null;default:0"          json:"latitude"`
 	Longitude    float64      `gorm:"not null;default:0"          json:"longitude"`
 	WebsiteURL   string       `gorm:"not null"                   json:"website_url"`
+	ImageURL     string       `gorm:"type:text"                  json:"image_url"`
 	Units        []Unit       `gorm:"foreignKey:PropertyID"      json:"units,omitempty"`
 	FeeStructure FeeStructure `gorm:"foreignKey:PropertyID"    json:"fee_structure,omitempty"`
 }
@@ -66,11 +67,37 @@ type PriceRecord struct {
 // User represents an authenticated user in the system.
 type User struct {
 	gorm.Model
-	Email    string               `gorm:"uniqueIndex;not null" json:"email"`
-	Name     string               `gorm:"not null" json:"name"`
-	Role     string               `gorm:"default:'user'" json:"role"`
-	Settings UserSettings         `gorm:"embedded;embeddedPrefix:settings_" json:"settings"`
-	Alerts   []UserWatchlistAlert `gorm:"foreignKey:UserID" json:"alerts,omitempty"`
+	TenantKey            string               `gorm:"not null;default:'default';index" json:"tenant_key"`
+	UID                  string               `gorm:"uniqueIndex;not null" json:"uid"` // Identity provider ID (e.g. Firebase)
+	Email                string               `gorm:"uniqueIndex;not null" json:"email"`
+	DisplayName          string               `gorm:"not null" json:"display_name"`
+	AvatarURL            string               `gorm:"type:text" json:"avatar_url"`
+	Bio                  string               `gorm:"type:text" json:"bio"`
+	Role                 string               `gorm:"default:'user'" json:"role"`
+	TierID               string               `gorm:"default:'free'" json:"tier_id"` // Matches SubscriptionTier
+	StripeCustomerID     string               `gorm:"index" json:"stripe_customer_id,omitempty"`
+	StripeSubscriptionID string               `gorm:"index" json:"stripe_subscription_id,omitempty"`
+	Settings             UserSettings         `gorm:"embedded;embeddedPrefix:settings_" json:"settings"`
+	Alerts               []UserWatchlistAlert `gorm:"foreignKey:UserID" json:"alerts,omitempty"`
+	ResourceUsage        []ResourceUsage      `gorm:"foreignKey:UserID" json:"resource_usage,omitempty"`
+}
+
+// SubscriptionTier defines the access priority and hard limits for an account tier.
+type SubscriptionTier struct {
+	ID         string  `gorm:"primaryKey" json:"id"` // e.g., 'free', 'pro'
+	Name       string  `gorm:"not null" json:"name"`
+	Priority   int     `gorm:"not null;default:0" json:"priority"`
+	MaxReports int     `gorm:"not null;default:5" json:"max_reports"`
+	MaxAlerts  int     `gorm:"not null;default:2" json:"max_alerts"`
+	PriceMonth float64 `gorm:"not null;default:0" json:"price_month"`
+}
+
+// ResourceUsage tracks the current utilization constraints for an individual User.
+type ResourceUsage struct {
+	gorm.Model
+	UserID       uint   `gorm:"not null;uniqueIndex:idx_user_resource" json:"user_id"`
+	ResourceType string `gorm:"not null;uniqueIndex:idx_user_resource" json:"resource_type"`
+	Used         int    `gorm:"not null;default:0" json:"used"`
 }
 
 // UserSettings represents embedded preferences/settings for a User.
@@ -79,6 +106,7 @@ type UserSettings struct {
 	MapStyle           string `gorm:"default:'dark-matter'" json:"map_style"`
 	EmailNotifications *bool  `gorm:"default:true" json:"email_notifications"`
 	TwoFactorEnabled   *bool  `gorm:"default:false" json:"two_factor_enabled"`
+	TopNavConfig       string `gorm:"type:text" json:"top_nav_config,omitempty"`
 }
 
 // UserWatchlistAlert represents a user's configured market alert.
@@ -94,7 +122,27 @@ type UserWatchlistAlert struct {
 // SystemSetting represents a global configuration key-value pair for the application.
 type SystemSetting struct {
 	gorm.Model
-	Key         string `gorm:"uniqueIndex;not null" json:"key"`
+	TenantKey   string `gorm:"not null;default:'default';uniqueIndex:ux_system_settings_tenant_key_key" json:"tenant_key"`
+	Key         string `gorm:"not null;uniqueIndex:ux_system_settings_tenant_key_key" json:"key"`
 	Value       string `gorm:"type:text;not null"   json:"value"`
 	Description string `gorm:"type:text"            json:"description"`
+}
+
+// AdminNavConfig stores the canonical admin-managed top navigation layout.
+type AdminNavConfig struct {
+	gorm.Model
+	TenantKey    string `gorm:"not null;default:'default';uniqueIndex:ux_admin_nav_configs_tenant_key_scope" json:"tenant_key"`
+	Scope        string `gorm:"not null;uniqueIndex:ux_admin_nav_configs_tenant_key_scope" json:"scope"`
+	ConfigJSON   string `gorm:"type:text;not null"   json:"config_json"`
+	UpdatedByUID string `gorm:"index"                json:"updated_by_uid,omitempty"`
+}
+
+// AdminSetting stores admin-managed runtime settings with ownership metadata.
+type AdminSetting struct {
+	gorm.Model
+	TenantKey    string `gorm:"not null;default:'default';uniqueIndex:ux_admin_settings_tenant_key_key" json:"tenant_key"`
+	Key          string `gorm:"not null;uniqueIndex:ux_admin_settings_tenant_key_key" json:"key"`
+	Value        string `gorm:"type:text;not null"   json:"value"`
+	Description  string `gorm:"type:text"            json:"description"`
+	UpdatedByUID string `gorm:"index"               json:"updated_by_uid,omitempty"`
 }

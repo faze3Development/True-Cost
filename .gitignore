@@ -6,6 +6,9 @@
 *.test
 *.out
 
+# Local runtime logs
+out.log
+
 # Environment files
 .env
 .env.*
@@ -14,3 +17,6 @@
 .idea/
 .vscode/
 *.swp
+Server/tmp/api.exe
+tmp/api.exe
+tmp/api.exe

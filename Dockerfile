@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1 — Build the Go binary
 # ---------------------------------------------------------------------------
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
@@ -14,8 +14,8 @@ RUN go mod download
 # the chromedp headless-shell image.
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-s -w" -o /api ./cmd/api && \
-    go build -ldflags="-s -w" -o /worker ./cmd/worker
+    go build -ldflags="-s -w" -o /api ./Server/cmd/api && \
+    go build -ldflags="-s -w" -o /worker ./Server
 
 # ---------------------------------------------------------------------------
 # Stage 2 — API service image (lightweight, no Chrome)

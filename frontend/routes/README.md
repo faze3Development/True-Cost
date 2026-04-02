@@ -84,6 +84,62 @@ Get filtered top navigation links based on user auth.
 const navLinks = getVisibleNavLinks(isAuthenticated, isAdmin);
 ```
 
+### `getVisibleNavLinksForPath(pathname, isAuthenticated, isAdmin)`
+Get filtered top navigation links for a specific pathname.
+
+```typescript
+const navLinks = getVisibleNavLinksForPath("/pages/reports", true, false);
+```
+
+### Dynamic Top Navigation via Environment Variables
+Top navigation can be configured per page with these variables:
+
+- `NEXT_PUBLIC_TOP_NAV_SETS_JSON`: JSON object of named nav sets
+- `NEXT_PUBLIC_TOP_NAV_PAGE_RULES_JSON`: JSON array that maps pathname prefixes to a nav set
+
+### Runtime Admin Overrides (Drag-and-Drop)
+Admins can now override top navigation at runtime from the Settings page.
+
+- Editor UI: `Settings -> Top Nav Layout Manager`
+- Storage key: `topNavRuntimeConfig` (local storage)
+- Live refresh event: `top-nav-config-updated`
+- Saved payload shape:
+
+```json
+{
+  "sets": {
+    "default": [{ "label": "Market Map", "href": "/", "type": "public" }]
+  },
+  "pageRules": [{ "prefix": "/", "set": "default" }]
+}
+```
+
+Runtime overrides take precedence in the header. Environment variables remain the default fallback.
+
+Example nav sets JSON:
+
+```json
+{
+  "default": [
+    { "label": "Market Map", "href": "/", "type": "public" },
+    { "label": "Settings", "href": "/pages/settings", "type": "admin" }
+  ],
+  "reports": [
+    { "label": "Market Trends", "href": "/pages/price-index", "type": "public" },
+    { "label": "Saved Reports", "href": "/pages/reports", "type": "protected" }
+  ]
+}
+```
+
+Example page rules JSON:
+
+```json
+[
+  { "prefix": "/pages/reports", "set": "reports" },
+  { "prefix": "/", "set": "default" }
+]
+```
+
 ### `getVisibleSidebarLinks(isAuthenticated, isAdmin)`
 Get filtered sidebar links based on user auth.
 

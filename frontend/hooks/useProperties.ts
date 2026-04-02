@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchProperties } from "@/lib/api";
+import { fetchProperties } from "@/api/properties";
 import type { Property } from "@/types/property";
 
 export function useProperties(bounds: string, options?: { enabled?: boolean }) {

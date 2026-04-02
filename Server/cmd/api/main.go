@@ -11,17 +11,60 @@ import (
 	"syscall"
 	"time"
 
+	"runtime/debug"
+	"strings"
+
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
 	"github.com/faze3Development/true-cost/Server/internal/api"
 	"github.com/faze3Development/true-cost/Server/internal/config"
 	"github.com/faze3Development/true-cost/Server/internal/db"
+	"github.com/faze3Development/true-cost/Server/internal/infrastructure/auth"
 	"github.com/faze3Development/true-cost/Server/internal/logging"
 	"github.com/faze3Development/true-cost/Server/migrations"
 )
 
+func loadDotEnv() {
+	// In local/dev we want edits to Server/.env to take effect immediately on restart,
+	// even if a previous shell exported different values.
+	if strings.ToLower(os.Getenv("ENV")) == "production" {
+		_ = godotenv.Load()
+		return
+	}
+	_ = godotenv.Overload("Server/.env")
+	_ = godotenv.Overload(".env")
+}
+
+func getEnvironment() string {
+	env := os.Getenv("ENV")
+	if env == "" {
+		env = "development"
+	}
+	return strings.ToLower(env)
+}
+
+func getVersion() string {
+	version := os.Getenv("APP_VERSION")
+	if version == "" {
+		if info, ok := debug.ReadBuildInfo(); ok {
+			version = info.Main.Version
+		}
+		if version == "" {
+			version = "dev"
+		}
+	}
+	return version
+}
+
 func main() {
-	logger, err := logging.Init()
+	loadDotEnv()
+
+	env := getEnvironment()
+	version := getVersion()
+
+	// 1. Init matching AI Studio Logger Structure
+	logger, err := logging.Init(env, version)
 	if err != nil {
 		_, _ = os.Stderr.WriteString("logger init failed: " + err.Error() + "\n")
 		os.Exit(1)
@@ -45,7 +88,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	router := api.NewRouter(database, cfg)
+	if err := db.SeedTiers(database); err != nil {
+		zap.L().Error("database seeding failed", zap.Error(err))
+	}
+
+	if err := db.SeedProperties(database); err != nil {
+		zap.L().Error("database properties seeding failed", zap.Error(err))
+	}
+
+	// Initialize Firebase Auth
+	// Passing an empty string so it tries to use GOOGLE_APPLICATION_CREDENTIALS from env
+	ctxInit := context.Background()
+	authClient, err := auth.NewClient(ctxInit, "")
+	if err != nil {
+		zap.L().Warn("firebase auth failed to initialize - protected routes will fail", zap.Error(err))
+	}
+
+	router := api.NewRouter(database, cfg, authClient)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

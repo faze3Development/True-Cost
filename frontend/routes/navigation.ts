@@ -14,6 +14,19 @@ export interface Route {
   children?: Route[];
 }
 
+export interface TopNavPageRule {
+  prefix: string;
+  set: string;
+}
+
+export interface TopNavRuntimeConfig {
+  sets: Record<string, Route[]>;
+  pageRules: TopNavPageRule[];
+}
+
+export const TOP_NAV_CONFIG_STORAGE_KEY = "topNavRuntimeConfig";
+export const TOP_NAV_CONFIG_UPDATED_EVENT = "top-nav-config-updated";
+
 /**
  * Public routes accessible to all users.
  */
@@ -34,7 +47,7 @@ export const PUBLIC_ROUTES: Route[] = [
   },
   {
     label: "Cost Calculator",
-    href: "/pages/truecost",
+    href: "/truecost",
     icon: "calculate",
     type: "public",
     description: "True monthly cost calculator with fee breakdown",
@@ -47,21 +60,21 @@ export const PUBLIC_ROUTES: Route[] = [
 export const PROTECTED_ROUTES: Route[] = [
   {
     label: "Price Index",
-    href: "/pages/price-index",
+    href: "/price-index",
     icon: "stacked_line_chart",
     type: "protected",
     description: "Market-wide pricing analysis and institutional delta",
   },
   {
     label: "Portfolio Analytics",
-    href: "/pages/reports",
+    href: "/reports",
     icon: "description",
     type: "protected",
     description: "Institutional-grade rental data and reports",
   },
   {
     label: "Saved Reports",
-    href: "/pages/reports",
+    href: "/reports",
     icon: "bookmark",
     type: "protected",
     description: "Your saved property reports and analysis",
@@ -73,8 +86,15 @@ export const PROTECTED_ROUTES: Route[] = [
  */
 export const ADMIN_ROUTES: Route[] = [
   {
+    label: "Admin Panel",
+    href: "/admin",
+    icon: "admin_panel_settings",
+    type: "admin",
+    description: "Navigation and experience configuration workspace",
+  },
+  {
     label: "Settings",
-    href: "/pages/settings",
+    href: "/settings",
     icon: "settings",
     type: "admin",
     description: "Account and application settings",
@@ -86,53 +106,273 @@ export const ADMIN_ROUTES: Route[] = [
  */
 export const TOP_NAV_LINKS: Route[] = [
   {
-    label: "Market Map",
-    href: "/",
+    label: "Portfolio",
+    href: "/portfolio",
     type: "public",
   },
   {
-    label: "Property Insights",
-    href: "/property-insights",
+    label: "Analytics",
+    href: "/price-index",
     type: "public",
   },
   {
-    label: "Cost Calculator",
-    href: "/pages/truecost",
+    label: "Reporting",
+    href: "/reports",
     type: "public",
   },
   {
-    label: "Settings",
-    href: "/pages/settings",
-    type: "admin",
+    label: "Compliance",
+    href: "/legal?tab=overview",
+    type: "public",
   },
 ];
+
+export const DEFAULT_TOP_NAV_SETS: Record<string, Route[]> = {
+  default: TOP_NAV_LINKS,
+  reports: [
+    { label: "Market Trends", href: "/price-index", type: "public" },
+    { label: "Saved Reports", href: "/reports", type: "protected" },
+    { label: "Data Exports", href: "/reports", type: "protected" },
+  ],
+  savedAssets: [
+    { label: "Dashboard", href: "/", type: "public" },
+    { label: "Market Overviews", href: "/price-index", type: "protected" },
+    { label: "Data Studio", href: "/reports", type: "protected" },
+  ],
+};
+
+export const DEFAULT_TOP_NAV_PAGE_RULES: TopNavPageRule[] = [
+  { prefix: "/reports", set: "reports" },
+  { prefix: "/saved-assets", set: "savedAssets" },
+  { prefix: "/", set: "default" },
+];
+
+const isRouteType = (value: unknown): value is RouteType => {
+  return value === "public" || value === "protected" || value === "admin";
+};
+
+const isNavLikeObject = (value: unknown): value is { label: string; href: string; type?: RouteType } => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  const hasRequired = typeof candidate.label === "string" && typeof candidate.href === "string";
+  const hasValidType = candidate.type === undefined || isRouteType(candidate.type);
+
+  return hasRequired && hasValidType;
+};
+
+const sanitizeTopNavSetCollection = (value: unknown): Record<string, Route[]> => {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  const next: Record<string, Route[]> = {};
+
+  for (const [setKey, setValue] of Object.entries(value as Record<string, unknown>)) {
+    if (!Array.isArray(setValue)) {
+      continue;
+    }
+
+    const sanitized = setValue
+      .filter(isNavLikeObject)
+      .map((link) => ({
+        label: link.label,
+        href: link.href,
+        type: link.type ?? "public",
+      }));
+
+    if (sanitized.length > 0) {
+      next[setKey] = sanitized;
+    }
+  }
+
+  return next;
+};
+
+const sanitizeTopNavPageRules = (value: unknown): TopNavPageRule[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((rule): rule is TopNavPageRule => {
+    if (!rule || typeof rule !== "object") {
+      return false;
+    }
+
+    const candidate = rule as Record<string, unknown>;
+    return typeof candidate.prefix === "string" && typeof candidate.set === "string";
+  });
+};
+
+const parseTopNavSets = (): Record<string, Route[]> => {
+  const raw = process.env.NEXT_PUBLIC_TOP_NAV_SETS_JSON;
+
+  if (!raw) {
+    return DEFAULT_TOP_NAV_SETS;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+
+    if (!parsed || typeof parsed !== "object") {
+      return DEFAULT_TOP_NAV_SETS;
+    }
+
+    const next = sanitizeTopNavSetCollection(parsed);
+
+    if (!next.default) {
+      next.default = DEFAULT_TOP_NAV_SETS.default;
+    }
+
+    return Object.keys(next).length > 0 ? next : DEFAULT_TOP_NAV_SETS;
+  } catch (error) {
+    console.warn("Invalid NEXT_PUBLIC_TOP_NAV_SETS_JSON. Falling back to default top nav sets.", error);
+    return DEFAULT_TOP_NAV_SETS;
+  }
+};
+
+const parseTopNavPageRules = (): TopNavPageRule[] => {
+  const raw = process.env.NEXT_PUBLIC_TOP_NAV_PAGE_RULES_JSON;
+
+  if (!raw) {
+    return DEFAULT_TOP_NAV_PAGE_RULES;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+
+    if (!Array.isArray(parsed)) {
+      return DEFAULT_TOP_NAV_PAGE_RULES;
+    }
+
+    const next = sanitizeTopNavPageRules(parsed);
+
+    return next.length > 0 ? next : DEFAULT_TOP_NAV_PAGE_RULES;
+  } catch (error) {
+    console.warn("Invalid NEXT_PUBLIC_TOP_NAV_PAGE_RULES_JSON. Falling back to default page rules.", error);
+    return DEFAULT_TOP_NAV_PAGE_RULES;
+  }
+};
+
+export const TOP_NAV_SETS: Record<string, Route[]> = parseTopNavSets();
+export const TOP_NAV_PAGE_RULES: TopNavPageRule[] = parseTopNavPageRules();
+
+const mergeTopNavSets = (overrideSets: Record<string, Route[]> | undefined): Record<string, Route[]> => {
+  if (!overrideSets) {
+    return TOP_NAV_SETS;
+  }
+
+  return {
+    ...TOP_NAV_SETS,
+    ...overrideSets,
+  };
+};
+
+export const resolveTopNavSetKey = (pathname: string, rules: TopNavPageRule[] = TOP_NAV_PAGE_RULES): string => {
+  const matchedRule = rules.find((rule) => pathname.startsWith(rule.prefix));
+
+  return matchedRule?.set ?? "default";
+};
+
+export const getTopNavLinksForPath = (
+  pathname: string,
+  runtimeConfig?: Partial<TopNavRuntimeConfig>
+): Route[] => {
+  const sets = mergeTopNavSets(runtimeConfig?.sets);
+  const rules = runtimeConfig?.pageRules && runtimeConfig.pageRules.length > 0
+    ? runtimeConfig.pageRules
+    : TOP_NAV_PAGE_RULES;
+  const setKey = resolveTopNavSetKey(pathname, rules);
+
+  return sets[setKey] ?? sets.default ?? TOP_NAV_LINKS;
+};
+
+export const getAllTopNavCandidates = (): Route[] => {
+  const seen = new Set<string>();
+  const combined = [...PUBLIC_ROUTES, ...PROTECTED_ROUTES, ...ADMIN_ROUTES, ...SIDEBAR_NAV_LINKS];
+
+  return combined.filter((route) => {
+    if (seen.has(route.href)) {
+      return false;
+    }
+
+    seen.add(route.href);
+    return true;
+  });
+};
+
+export const parseTopNavRuntimeConfig = (raw: string): TopNavRuntimeConfig | null => {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+
+    const candidate = parsed as Record<string, unknown>;
+    const sets = sanitizeTopNavSetCollection(candidate.sets);
+    const pageRules = sanitizeTopNavPageRules(candidate.pageRules);
+
+    if (!sets.default) {
+      sets.default = TOP_NAV_SETS.default ?? TOP_NAV_LINKS;
+    }
+
+    if (Object.keys(sets).length === 0) {
+      return null;
+    }
+
+    return {
+      sets,
+      pageRules: pageRules.length > 0 ? pageRules : TOP_NAV_PAGE_RULES,
+    };
+  } catch {
+    return null;
+  }
+};
+
+export const createDefaultTopNavRuntimeConfig = (): TopNavRuntimeConfig => ({
+  sets: Object.fromEntries(
+    Object.entries(TOP_NAV_SETS).map(([key, routes]) => [
+      key,
+      routes.map((route) => ({ ...route })),
+    ])
+  ),
+  pageRules: TOP_NAV_PAGE_RULES.map((rule) => ({ ...rule })),
+});
 
 /**
  * Sidebar navigation links (for protected/dashboard pages).
  */
 export const SIDEBAR_NAV_LINKS: Route[] = [
   {
-    label: "Map Search",
+    label: "Dashboard",
     href: "/",
-    icon: "map",
+    icon: "dashboard",
     type: "public",
   },
   {
     label: "Price Index",
-    href: "/pages/price-index",
-    icon: "stacked_line_chart",
+    href: "/price-index",
+    icon: "query_stats",
     type: "protected",
   },
   {
     label: "Saved Assets",
-    href: "/pages/saved-assets",
+    href: "/saved-assets",
     icon: "bookmark",
     type: "protected",
   },
   {
     label: "Reports",
-    href: "/pages/reports",
+    href: "/reports",
     icon: "description",
+    type: "protected",
+  },
+  {
+    label: "Support",
+    href: "/support",
+    icon: "contact_support",
     type: "protected",
   },
 ];

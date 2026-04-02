@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchUnitHistory } from "@/lib/api";
+import { fetchUnitHistory } from "@/api/properties";
 import type { UnitHistoryPoint } from "@/types/unitHistory";
 
 export function useUnitHistory(unitId: string, days: number = 90) {

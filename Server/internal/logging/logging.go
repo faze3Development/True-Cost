@@ -8,7 +8,8 @@ import (
 )
 
 // Init builds a production JSON logger and installs it as the global zap logger.
-func Init() (*zap.Logger, error) {
+// It matches AI Studio's structured logging architecture globally.
+func Init(env, version string) (*zap.Logger, error) {
 	cfg := zap.NewProductionConfig()
 	cfg.Encoding = "json"
 	cfg.EncoderConfig.TimeKey = "time"
@@ -21,6 +22,13 @@ func Init() (*zap.Logger, error) {
 	if err != nil {
 		return nil, fmt.Errorf("build zap logger: %w", err)
 	}
+
+	// Tie AI Studio's global metadata bounds to the logging interceptors
+	logger = logger.With(
+		zap.String("service", "true-cost-api"),
+		zap.String("env", env),
+		zap.String("version", version),
+	)
 
 	zap.ReplaceGlobals(logger)
 	return logger, nil
