@@ -13,9 +13,9 @@ type Module struct {
 }
 
 // NewModule initializes the admin repository/service/handler stack.
-func NewModule(db *gorm.DB, auditLogger *audit.AuditLogger, bootstrapSecret string, rbacBootstrapper RBACBootstrapper) *Module {
+func NewModule(db *gorm.DB, auditLogger *audit.AuditLogger, bootstrapSecret string, rbacManager RBACManager) *Module {
 	repo := NewRepository(db)
-	svc := NewService(repo, auditLogger, bootstrapSecret, rbacBootstrapper)
+	svc := NewService(repo, auditLogger, bootstrapSecret, rbacManager)
 	h := NewHandler(svc)
 
 	return &Module{

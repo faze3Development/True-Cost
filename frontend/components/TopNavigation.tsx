@@ -13,7 +13,8 @@ import {
   type TopNavRuntimeConfig,
 } from "@/routes";
 import { Logo } from "@/components/Logo";
-import { updateUserSettings } from "@/api/user";
+import { useAuth } from "@/context/AuthContext";
+import { env } from "@/lib/env";
 
 export interface NavLink {
   label: string;
@@ -81,6 +82,8 @@ export default function TopNavigation({ navLinks }: TopNavigationProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  const { user: authUser, dbUser, updateUserSetting } = useAuth();
+
   return (
     <header className="fixed top-0 z-50 w-full bg-surface/80 backdrop-blur-xl shadow-ambient">
       <div className="mx-auto flex w-full max-w-[1920px] items-center justify-between px-6 py-3">
@@ -129,9 +132,11 @@ export default function TopNavigation({ navLinks }: TopNavigationProps) {
             onClick={() => {
               const newTheme = theme === 'dark' ? 'light' : 'dark';
               setTheme(newTheme);
-              updateUserSettings("theme", newTheme).catch((err) =>
-                console.warn("Failed to persist theme setting", err)
-              );
+              if (authUser) {
+                updateUserSetting("theme", newTheme).catch((err) =>
+                  console.warn("Failed to persist theme setting", err)
+                );
+              }
             }}
             className="rounded-lg bg-surface-container-low px-2 py-2 text-on-surface-variant transition-colors hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             aria-label="Toggle Dark Mode"
@@ -151,8 +156,8 @@ export default function TopNavigation({ navLinks }: TopNavigationProps) {
           </button>
           <div className="h-9 w-9 overflow-hidden rounded-xl bg-surface-container ghost-border">
             <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_wbp8BFKeErTljlaO1jj9wyt3Nd6A4Y0tA5_clRlCbUI4SQ46-uYqgnazJ3erROnMfcodm-nLYyavKGnR3NaqbR8kuhzrqSMvIVy8LzVvfbf0OOaApPsB_eeieMGu9KPFKLh9Kb303BeyEDXHRGrTeGLVSobFKlhPY-1MNmbSeBAkFogyU79QVNNPhej4S-JaWA_RMLkJu4uDd69cSOuwFknq0tvYAnWZgcfVaAaW6HrQ0t5vfUTT--W1EjUHXJAok4Nqj08Cl4ou"
-              alt="Profile"
+              src={authUser?.photoURL || dbUser?.avatar_url || env.DEFAULT_AVATAR_URL}
+              alt={authUser?.displayName || dbUser?.display_name || "Profile"}
               className="h-full w-full object-cover"
             />
           </div>

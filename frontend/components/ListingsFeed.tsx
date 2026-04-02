@@ -1,6 +1,10 @@
+"use client";
+
 import PropertyCard from "@/components/PropertyCard";
+import { useBookmarks } from "@/hooks/useBookmarks";
 import type { Property } from "@/types/property";
 import clsx from "clsx";
+import { env } from "@/lib/env";
 
 export interface FilterChip {
   label: string;
@@ -18,10 +22,12 @@ export interface ListingsFeedProps {
 const defaultFilters: FilterChip[] = [
   { label: "Beds", value: "Any" },
   { label: "Baths", value: "Any" },
-  { label: "Max TrueCost", value: "$4,000" },
+  { label: `Max ${env.APP_NAME}`, value: "$4,000" },
 ];
 
 export default function ListingsFeed({ properties, resultsCount, filters = defaultFilters, isLoading, isError }: ListingsFeedProps) {
+  const { bookmarkedIds, toggleBookmark } = useBookmarks();
+
   return (
     <section className="flex w-full max-w-[520px] flex-col bg-surface-container-low">
       <div className="sticky top-0 z-10 bg-surface/85 px-4 py-4 backdrop-blur-md">
@@ -63,7 +69,14 @@ export default function ListingsFeed({ properties, resultsCount, filters = defau
         ) : null}
 
         {properties.map((property) => (
-          <PropertyCard key={property.id} {...property} />
+          <PropertyCard
+            key={property.id}
+            {...property}
+            isBookmarked={bookmarkedIds.has(String(property.id))}
+            onBookmark={(e: React.MouseEvent) => {
+              toggleBookmark(property.id);
+            }}
+          />
         ))}
       </div>
     </section>

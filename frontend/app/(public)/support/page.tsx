@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { env } from "@/lib/env";
 
 export default function SupportPage() {
   return (
@@ -11,7 +12,7 @@ export default function SupportPage() {
       <header className="px-8 py-6 flex items-center justify-between border-b border-outline-variant/10">
         <Link href="/" className="flex items-center gap-3">
           <Logo />
-          <span className="font-bold text-xl tracking-tight text-on-surface">TrueCost Rent</span>
+          <span className="font-bold text-xl tracking-tight text-on-surface">{env.APP_NAME}</span>
         </Link>
         <Link href="/login" className="text-sm font-semibold text-primary hover:text-secondary transition-colors">
           Sign In
@@ -25,7 +26,7 @@ export default function SupportPage() {
             How can we assist you?
           </h2>
           <p className="text-base md:text-lg text-on-primary-container max-w-2xl leading-relaxed">
-            Access support for <span className="font-bold text-primary-container">TrueCost Rent</span>. Our team of data specialists and technical architects is available to ensure your platform experience is seamlessly accurate.
+            Access support for <span className="font-bold text-primary-container">{env.APP_NAME}</span>. Our team of data specialists and technical architects is available to ensure your platform experience is seamlessly accurate.
           </p>
         </header>
 
@@ -134,7 +135,7 @@ export default function SupportPage() {
                 <span className="text-[10px] font-bold uppercase tracking-widest text-secondary-fixed mb-4 block">Priority Support</span>
                 <div className="mb-6">
                   <p className="text-sm text-on-primary-container mb-1">Direct Support Email</p>
-                  <p className="text-lg md:text-xl font-bold tracking-tight text-white break-all">support@theeditorialledger.com</p>
+                  <p className="text-lg md:text-xl font-bold tracking-tight text-white break-all">{env.SUPPORT_EMAIL}</p>
                 </div>
                 <div className="flex items-center gap-3 bg-white/5 p-4 rounded-lg backdrop-blur-sm border border-white/10">
                   <span className="material-symbols-outlined text-secondary-fixed" aria-hidden="true">schedule</span>
@@ -154,7 +155,7 @@ export default function SupportPage() {
       {/* Standard Footer Text */}
       <footer className="mt-auto py-12 px-6 border-t border-outline-variant/20 flex flex-col md:flex-row justify-between items-center gap-6 text-on-surface-variant w-full max-w-7xl mx-auto">
         <div className="text-xs font-medium">
-          © 2024 TrueCost Rent
+          © {new Date().getFullYear()} {env.APP_NAME}
         </div>
         <div className="flex flex-wrap justify-center gap-8 text-[11px] font-semibold text-outline tracking-wide">
           <Link className="hover:text-primary transition-colors" href="/legal?tab=terms">Terms of Service</Link>

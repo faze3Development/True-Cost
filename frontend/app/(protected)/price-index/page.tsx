@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { buildPropertyUrl } from "@/routes";
 import AppLayout from "@/components/AppLayout";
+import { env } from "@/lib/env";
 
 interface PriceIndexMetric {
   label: string;
@@ -174,7 +176,7 @@ export default function PriceIndexPage() {
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-secondary" />
               <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-                True Cost (Net Effective)
+                {env.APP_NAME} (Net Effective)
               </span>
             </div>
           </div>
@@ -189,7 +191,7 @@ export default function PriceIndexPage() {
             {propertyData.map((property) => (
               <Link
                 key={property.id}
-                href={`/pages/price-index/${property.id}`}
+                href={buildPropertyUrl(property.id)}
                 className="block rounded-lg bg-surface-container-lowest p-6 border border-outline/15 transition-all hover:shadow-ambient hover:border-secondary/30"
               >
                 <div className="mb-4 flex items-start justify-between">
@@ -215,7 +217,7 @@ export default function PriceIndexPage() {
                 <div className="grid grid-cols-4 gap-4">
                   <div className="rounded bg-surface-container-low p-3">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                      True Cost
+                      {env.APP_NAME}
                     </p>
                     <p className="mt-1 text-lg font-bold">${property.trueRent}</p>
                   </div>

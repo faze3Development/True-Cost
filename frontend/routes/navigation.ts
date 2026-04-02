@@ -59,11 +59,18 @@ export const PUBLIC_ROUTES: Route[] = [
  */
 export const PROTECTED_ROUTES: Route[] = [
   {
-    label: "Price Index",
-    href: "/price-index",
-    icon: "stacked_line_chart",
+    label: "Market Analysis",
+    href: "/market-analysis",
+    icon: "trending_up",
     type: "protected",
-    description: "Market-wide pricing analysis and institutional delta",
+    description: "Institutional market analysis with comparative neighborhood metrics",
+  },
+  {
+    label: "Alerts",
+    href: "/alerts",
+    icon: "notifications_active",
+    type: "protected",
+    description: "Live market signals and volatility alerts",
   },
   {
     label: "Portfolio Analytics",
@@ -91,6 +98,13 @@ export const ADMIN_ROUTES: Route[] = [
     icon: "admin_panel_settings",
     type: "admin",
     description: "Navigation and experience configuration workspace",
+  },
+  {
+    label: "Management",
+    href: "/admin/management",
+    icon: "manage_accounts",
+    type: "admin",
+    description: "Tenants, system settings, and RBAC operations",
   },
   {
     label: "Settings",

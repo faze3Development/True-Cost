@@ -8,8 +8,10 @@ import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
+import { env } from "@/lib/env";
+
 export const metadata: Metadata = {
-  title: "The Editorial Ledger | TrueCost Rent",
+  title: `${env.COMPANY_NAME} | ${env.APP_NAME}`,
   description: "High-end real estate analytics experience for verified rental data.",
 };
 

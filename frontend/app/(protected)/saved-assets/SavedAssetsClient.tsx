@@ -8,6 +8,10 @@ import { useProperties } from "@/hooks/useProperties";
 import { fetchPropertyUnits, fetchUnitHistory } from "@/api/properties";
 import type { Property } from "@/types/property";
 import type { UnitHistoryPoint } from "@/types/unitHistory";
+import { buildAnalyticsUrl, buildReportsUrl } from "@/routes";
+import { env } from "@/lib/env";
+import { useBookmarks } from "@/hooks/useBookmarks";
+import { isValidPropertyId } from "@/security";
 
 const formatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -32,6 +36,7 @@ type DerivedAsset = {
   imageUrl?: string;
   badgeLabel?: string;
   insight?: "positive" | "neutral" | "negative";
+  propertyType?: string;
 };
 
 type Segment = {
@@ -50,7 +55,6 @@ type SegmentDraft = {
 };
 
 const SEGMENTS_STORAGE_KEY = "saved-assets:user-segments";
-const DISMISSED_STORAGE_KEY = "saved-assets:dismissed";
 
 function normalizeAssets(data?: Property[]): DerivedAsset[] {
   if (!data) return [];
@@ -75,6 +79,7 @@ function normalizeAssets(data?: Property[]): DerivedAsset[] {
         "https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?auto=format&fit=crop&w=1200&q=80",
       badgeLabel: item.badgeLabel,
       insight: item.insight,
+      propertyType: item.propertyType,
     };
   });
 }
@@ -99,7 +104,7 @@ function deriveSegments(assets: DerivedAsset[], userSegments: Segment[]): Segmen
         city,
         label: info.label,
         change: Math.round(change * 10) / 10,
-        metric: "True cost delta vs advertised",
+        metric: `${env.APP_NAME} delta vs advertised`,
         sentiment,
       } satisfies Segment;
     })
@@ -110,18 +115,44 @@ function deriveSegments(assets: DerivedAsset[], userSegments: Segment[]): Segmen
 }
 
 function Sparkline({ propertyId }: { propertyId: string | number }) {
-  const { data, isLoading } = useQuery<UnitHistoryPoint[]>({
+  // Validate propertyId using centralized validator
+  const isValidId = isValidPropertyId(propertyId);
+
+  const { data, isLoading, isError } = useQuery<UnitHistoryPoint[]>({
     queryKey: ["property-sparkline", propertyId],
     queryFn: async () => {
+      if (!isValidId) return [];
       const units = await fetchPropertyUnits(propertyId);
       if (!units.length) return [];
       return fetchUnitHistory(String(units[0].id), 45);
     },
     staleTime: 1000 * 60 * 10,
-    enabled: Boolean(propertyId),
+    enabled: isValidId,
   });
 
   const points = data ?? [];
+
+  if (!isValidId) {
+    return (
+      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-surface-container px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
+        <span className="material-symbols-outlined text-base" aria-hidden>
+          error_outline
+        </span>
+        Invalid data
+      </span>
+    );
+  }
+
+  if (isError) {
+    return (
+      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-error/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-error" aria-label="Error loading history">
+        <span className="material-symbols-outlined text-base" aria-hidden>
+          warning
+        </span>
+        Error
+      </span>
+    );
+  }
 
   if (isLoading) {
     return <div className="mt-2 h-4 w-24 animate-pulse rounded-full bg-surface-container" aria-hidden />;
@@ -159,7 +190,7 @@ function Sparkline({ propertyId }: { propertyId: string | number }) {
   const areaPath = `${path} L ${width} ${height} L 0 ${height} Z`;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="mt-2 h-7 w-28 text-secondary" role="img" aria-label="True cost trend sparkline">
+    <svg viewBox={`0 0 ${width} ${height}`} className="mt-2 h-7 w-28 text-secondary" role="img" aria-label={`${env.APP_NAME} trend sparkline`}>
       <defs>
         <linearGradient id={`spark-${propertyId}`} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="currentColor" stopOpacity="0.8" />
@@ -174,9 +205,9 @@ function Sparkline({ propertyId }: { propertyId: string | number }) {
 
 export default function SavedAssetsClient() {
   const router = useRouter();
+  const { bookmarkedIds, toggleBookmark } = useBookmarks();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>(tabs[0]);
-  const [dismissedIds, setDismissedIds] = useState<Set<string | number>>(new Set());
   const [userSegments, setUserSegments] = useState<Segment[]>([]);
   const [isAddingSegment, setIsAddingSegment] = useState(false);
   const [draft, setDraft] = useState<SegmentDraft>({ city: "", label: "", metric: "", change: "" });
@@ -190,7 +221,7 @@ export default function SavedAssetsClient() {
     const lowered = search.trim().toLowerCase();
 
     return assets
-      .filter((asset) => !dismissedIds.has(asset.id))
+      .filter((asset) => bookmarkedIds.has(String(asset.id)))
       .filter((asset) => {
         if (!lowered) return true;
         return (
@@ -201,10 +232,10 @@ export default function SavedAssetsClient() {
       })
       .filter((asset) => {
         if (activeTab === "All Assets") return true;
-        // Until categories are tagged server-side, show everything for non-default tabs.
-        return true;
+        // Match the asset's tagged category to the selected tab.
+        return asset.propertyType === activeTab;
       });
-  }, [assets, search, activeTab, dismissedIds]);
+  }, [assets, search, activeTab, bookmarkedIds]);
 
   const segments = useMemo(() => deriveSegments(assets, userSegments), [assets, userSegments]);
 
@@ -215,20 +246,11 @@ export default function SavedAssetsClient() {
   }, [filteredAssets]);
 
   const handleBookmarkRemove = (id: string | number) => {
-    setDismissedIds((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      try {
-        localStorage.setItem(DISMISSED_STORAGE_KEY, JSON.stringify(Array.from(next)));
-      } catch (error) {
-        console.warn("Failed to persist dismissed ids", error);
-      }
-      return next;
-    });
+    toggleBookmark(id);
   };
 
   const handleViewAnalysis = (id: string | number) => {
-    router.push(`/pages/analytics?propertyId=${id}`);
+    router.push(buildAnalyticsUrl(id));
   };
 
   const handleAddSegment = (event: React.FormEvent<HTMLFormElement>) => {
@@ -266,12 +288,6 @@ export default function SavedAssetsClient() {
       if (savedSegments) {
         const parsed: Segment[] = JSON.parse(savedSegments);
         setUserSegments(parsed);
-      }
-
-      const savedDismissed = localStorage.getItem(DISMISSED_STORAGE_KEY);
-      if (savedDismissed) {
-        const parsed: Array<string | number> = JSON.parse(savedDismissed);
-        setDismissedIds(new Set(parsed));
       }
     } catch (error) {
       console.warn("Failed to hydrate saved assets state", error);
@@ -403,7 +419,7 @@ export default function SavedAssetsClient() {
                                 </p>
                               </div>
                               <div className="text-right">
-                                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-secondary">True Cost</p>
+                                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-secondary">{env.APP_NAME}</p>
                                 <p className="text-2xl font-black tracking-tight text-secondary tabular-nums">
                                   {formatter.format(asset.trueCost)}
                                 </p>
@@ -537,12 +553,12 @@ export default function SavedAssetsClient() {
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/80">Portfolio Insights</p>
                   <h3 className="mt-3 text-2xl font-extrabold tracking-tight">This Month</h3>
                   <p className="mt-3 text-sm text-white/80">
-                    Saved assets show an average {averageDelta}% delta between advertised and true costs.
+                    Saved assets show an average {averageDelta}% delta between advertised and {env.APP_NAME}.
                   </p>
                   <button
                     type="button"
                     className="mt-6 w-full rounded-lg bg-white/10 px-4 py-3 text-sm font-semibold text-white backdrop-blur transition-all hover:bg-white/15"
-                    onClick={() => router.push("/pages/reports")}
+                    onClick={() => router.push(buildReportsUrl())}
                   >
                     Download Full Summary
                   </button>

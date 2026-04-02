@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"os"
 
 	firebase "firebase.google.com/go/v4"
 	firebaseAuth "firebase.google.com/go/v4/auth"
@@ -21,12 +22,30 @@ func NewClient(ctx context.Context, credentialsFile string) (*Client, error) {
 		opts = append(opts, option.WithCredentialsFile(credentialsFile))
 	}
 
-	// Initialize Firebase App
-	app, err := firebase.NewApp(ctx, nil, opts...)
+	config := &firebase.Config{}
+	if projectID := os.Getenv("GOOGLE_CLOUD_PROJECT"); projectID != "" {
+		config.ProjectID = projectID
+	} else if projectID := os.Getenv("GCLOUD_PROJECT"); projectID != "" {
+		config.ProjectID = projectID
+	}
+
+	var app *firebase.App
+	var err error
+
+	if config.ProjectID != "" {
+		app, err = firebase.NewApp(ctx, config, opts...)
+	} else {
+		app, err = firebase.NewApp(ctx, nil, opts...)
+	}
+
 	if err != nil {
 		if credentialsFile == "" {
 			// Try again without opts if defaulting
-			app, err = firebase.NewApp(ctx, nil)
+			if config.ProjectID != "" {
+				app, err = firebase.NewApp(ctx, config)
+			} else {
+				app, err = firebase.NewApp(ctx, nil)
+			}
 		}
 		if err != nil {
 			return nil, fmt.Errorf("error initializing firebase app: %w", err)

@@ -154,7 +154,7 @@ export default function AnalyticsPage() {
         </section>
 
         {/* Data Exports CTA */}
-        <DataExportBanner />
+        <DataExportBanner rows={SAVED_REPORTS} />
 
         {/* System Footer */}
         <SystemStatusBar />

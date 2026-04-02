@@ -14,12 +14,13 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import { fetchUserSettings, updateUserSettings } from "@/api/user";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { type UserProfile } from "@/api/user";
+import { useQueryClient } from "@tanstack/react-query";
+import { useUserProfile, useUpdateUserSetting, USER_KEYS } from "@/hooks/useUser";
 
 interface AuthContextType {
   user: User | null;
-  dbUser: any | null; // Database user profile
+  dbUser: UserProfile | null; // Database user profile
   loading: boolean;
   authLoading: boolean;
   profileLoading: boolean;
@@ -40,17 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const updateUserSettingMutation = useUpdateUserSetting();
+
   // Fetch DB Profile when Firebase user is set
   const {
     data: dbUser,
     isLoading: profileLoading,
-  } = useQuery({
-    queryKey: ["userProfile", currentUser?.uid],
-    queryFn: fetchUserSettings,
-    enabled: !!currentUser,
-    staleTime: 30 * 1000, // 30 seconds
-    retry: 1,
-  });
+  } = useUserProfile(currentUser?.uid);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -58,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthLoading(false);
 
       if (!user) {
-        queryClient.removeQueries({ queryKey: ["userProfile"] });
+        queryClient.removeQueries({ queryKey: USER_KEYS.all });
       }
     });
 
@@ -96,9 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateUserSetting = useCallback(async (key: string, value: any) => {
     if (!currentUser) throw new Error("No authenticated user");
-    await updateUserSettings(key, value);
-    queryClient.invalidateQueries({ queryKey: ["userProfile", currentUser.uid] });
-  }, [currentUser, queryClient]);
+    await updateUserSettingMutation.mutateAsync({ key, value });
+  }, [currentUser, updateUserSettingMutation]);
 
   const value = useMemo(() => ({
     user: currentUser,

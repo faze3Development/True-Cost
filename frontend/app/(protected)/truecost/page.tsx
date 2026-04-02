@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { useProperties } from "@/hooks/useProperties";
+import { env } from "@/lib/env";
 
 interface CalculatorState {
   baseRent: number;
@@ -344,7 +345,7 @@ export default function TrueCostPage() {
             <div className="surface-container-lowest p-6 rounded-lg border border-outline/30 shadow-sm">
               <h4 className="font-bold text-sm mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-secondary">calculate</span>
-                The TrueCost Formula
+                The {env.APP_NAME} Formula
               </h4>
               <div className="p-4 bg-surface-container-low rounded font-mono text-[11px] leading-relaxed text-on-surface-variant">
                 ((Advertised × Months) - Concessions) / Term + Monthly Fees = True Monthly Cost

@@ -1,6 +1,35 @@
 import { apiClient } from "./client";
 import type { ApiUnitHistoryRecord, UnitHistoryPoint } from "@/types/unitHistory";
 import type { ApiUnit, ApiUnitResponse } from "@/types/unit";
+import { isValidPropertyId, isValidUnitId } from "@/security";
+
+export interface ApiFeeStructure {
+  id: number;
+  property_id: number;
+  trash_fee: number;
+  amenity_fee: number;
+  package_fee: number;
+  water_sewer_fee: number;
+  move_in_fee: number;
+  move_out_fee: number;
+  pet_rent: number;
+  parking_fee: number;
+  has_deposit: boolean;
+  has_pet_deposit: boolean;
+}
+
+export interface ApiPropertyDetailResponse {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  latitude: number;
+  longitude: number;
+  image_url?: string;
+  fee_structure: ApiFeeStructure;
+}
 
 export interface ApiPropertyResponse {
   id: number | string;
@@ -22,7 +51,17 @@ export const fetchProperties = async (bounds: string) => {
   return response.data;
 };
 
+export const fetchProperty = async (id: string | number) => {
+  const response = await apiClient.get<ApiPropertyDetailResponse>(`/properties/${id}`);
+  return response.data;
+};
+
 export const fetchUnitHistory = async (unitId: string, days = 90): Promise<UnitHistoryPoint[]> => {
+  if (!isValidUnitId(unitId)) {
+    console.warn("Invalid unitId passed to fetchUnitHistory:", unitId);
+    return [];
+  }
+
   const response = await apiClient.get<ApiUnitHistoryRecord[]>(`/units/${unitId}/history?days=${days}`);
 
   return response.data.map((record) => {
@@ -43,6 +82,11 @@ export const fetchUnitHistory = async (unitId: string, days = 90): Promise<UnitH
 };
 
 export const fetchPropertyUnits = async (propertyId: string | number): Promise<ApiUnit[]> => {
+  if (!isValidPropertyId(propertyId)) {
+    console.warn("Invalid propertyId passed to fetchPropertyUnits:", propertyId);
+    return [];
+  }
+
   const response = await apiClient.get<ApiUnitResponse[]>(`/properties/${propertyId}/units`);
 
   return response.data.map((unit) => ({

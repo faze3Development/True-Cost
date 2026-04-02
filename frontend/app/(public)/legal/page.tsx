@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-
 import { Suspense } from "react";
+import { env } from "@/lib/env";
 
 type Tab = "overview" | "privacy" | "terms" | "compliance";
 
@@ -87,37 +87,13 @@ function LegalCenterContent() {
 
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* TopNavBar */}
-        <header className="w-full top-0 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50 font-inter tracking-tight flex justify-between items-center px-8 py-4 z-50 border-b border-outline-variant/20">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="text-xl font-bold tracking-tighter text-slate-900 dark:text-slate-50">
-              TrueCost Rent
-            </Link>
-            <nav className="hidden lg:flex items-center gap-6 text-sm">
-              <Link className="text-slate-500 dark:text-slate-400 hover:text-emerald-500 transition-colors" href="#">Portfolio</Link>
-              <Link className="text-slate-500 dark:text-slate-400 hover:text-emerald-500 transition-colors" href="#">Analytics</Link>
-              <Link className="text-slate-500 dark:text-slate-400 hover:text-emerald-500 transition-colors" href="#">Reporting</Link>
-              <Link className="text-emerald-600 dark:text-emerald-400 font-semibold border-b-2 border-emerald-600 pb-1" href="#">Compliance</Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative hidden sm:block">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true">search</span>
-              <input 
-                className="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-1.5 text-sm focus:ring-1 focus:ring-emerald-500 w-64" 
-                placeholder="Search documents..." 
-                type="text" 
-              />
-            </div>
-            <button className="material-symbols-outlined text-slate-500 hover:text-slate-900 transition-colors" aria-hidden="true">notifications</button>
-            <button className="material-symbols-outlined text-slate-500 hover:text-slate-900 transition-colors" aria-hidden="true">settings</button>
-            <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden ml-2 flex shrink-0">
-              <img 
-                className="w-full h-full object-cover" 
-                alt="Profile" 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKTUx0zyDLz1eUbcbK2rajFJR7ok4q4JrQ5gAVm90cJwLsozYJ4mzFHhsqfBBtth0YMpll-1WlPwdsMOT0q0S9bIbwkDtBAKsFFmRcWv3xSTU5EZX6kPwUBJSiA_Hoqigj6G3W8A34IWKcvL1zjfW9FqqPKer32Vv2wLk522nKe9_jIFT2r1zG-gXH2cOnoa2Jnbjo3xERTTsGLo9JhWdVZ3s14oXskYevjKWNhYc0-vm11iLmae0yKqGLxqPIV2NVIUplapr_kX9e" 
-              />
-            </div>
-          </div>
+        <header className="w-full bg-slate-50 dark:bg-slate-900 flex items-center justify-between px-8 py-4 border-b border-outline-variant/20 z-50">
+          <Link href="/" className="text-xl font-bold tracking-tighter text-slate-900 dark:text-slate-50">
+            {env.APP_NAME}
+          </Link>
+          <Link href="/login" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
+            Sign In
+          </Link>
         </header>
 
         {/* Main Content Area */}
@@ -187,7 +163,7 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: Tab) => void })
           </div>
           <h3 className="text-xl font-bold mb-4 tracking-tight">Terms of Service</h3>
           <p className="text-on-surface-variant text-sm leading-relaxed flex-1 mb-8">
-            The standard operating agreement between TrueCost Rent and your organization. Defines service levels and liability.
+            The standard operating agreement between {env.APP_NAME} and your organization. Defines service levels and liability.
           </p>
           <button onClick={() => setActiveTab("terms")} className="text-primary font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:text-emerald-600 transition-colors w-max">
             View Full Document
@@ -303,7 +279,7 @@ function PrivacyPolicyContent() {
           Institutional Trust Protocol
         </div>
         <h1 className="text-5xl md:text-6xl font-black text-on-surface tracking-tighter leading-tight mb-6 editorial-tight">Privacy Policy</h1>
-        <p className="text-xl text-on-surface-variant leading-relaxed font-medium">TrueCost Rent operates with clinical precision. This ledger details how we handle the institutional data required to decode the rental market&apos;s true value.</p>
+        <p className="text-xl text-on-surface-variant leading-relaxed font-medium">{env.APP_NAME} operates with clinical precision. This ledger details how we handle the institutional data required to decode the rental market&apos;s true value.</p>
       </header>
 
       {/* 1. Acceptance */}
@@ -315,8 +291,8 @@ function PrivacyPolicyContent() {
           <div className="flex-1">
             <h3 className="text-2xl font-bold mb-6 tracking-tight text-on-surface">Acceptance of Privacy Terms</h3>
             <div className="bg-surface-container-low p-8 rounded-xl space-y-4 hover:bg-surface-container transition-colors duration-300">
-              <p className="text-on-surface-variant leading-relaxed">By engaging with the TrueCost Rent ecosystem, you provide explicit consent for the processing of data as outlined in this document. Our &quot;No-Line&quot; transparency policy ensures that every data point used is disclosed without obfuscation.</p>
-              <p className="text-on-surface-variant leading-relaxed">This protocol is effective as of October 2024 and applies to all institutional and individual users of the TrueCost Rent platform.</p>
+              <p className="text-on-surface-variant leading-relaxed">By engaging with the {env.APP_NAME} ecosystem, you provide explicit consent for the processing of data as outlined in this document. Our &quot;No-Line&quot; transparency policy ensures that every data point used is disclosed without obfuscation.</p>
+              <p className="text-on-surface-variant leading-relaxed">This protocol is effective as of October 2024 and applies to all institutional and individual users of the {env.APP_NAME} platform.</p>
             </div>
           </div>
         </div>
@@ -332,7 +308,7 @@ function PrivacyPolicyContent() {
           <div className="md:col-span-2 bg-surface-container-lowest p-10 rounded-xl shadow-[0_4px_24px_rgba(20,29,35,0.04)] border border-outline-variant/10 hover:-translate-y-1 transition-transform duration-300">
             <div className="material-symbols-outlined text-emerald-600 mb-6 text-3xl">analytics</div>
             <h4 className="text-lg font-bold mb-3">Scraped Rental Data</h4>
-            <p className="text-on-surface-variant text-sm leading-relaxed">We aggregate high-frequency market data from public and institutional sources. This includes historical pricing, localized utility averages, and municipal tax variations to construct the TrueCost baseline.</p>
+            <p className="text-on-surface-variant text-sm leading-relaxed">We aggregate high-frequency market data from public and institutional sources. This includes historical pricing, localized utility averages, and municipal tax variations to construct the {env.APP_NAME} baseline.</p>
           </div>
           <div className="bg-primary-container p-10 rounded-xl text-white shadow-md hover:-translate-y-1 transition-transform duration-300">
             <div className="material-symbols-outlined text-emerald-400 mb-6 text-3xl">fingerprint</div>
@@ -364,7 +340,7 @@ function PrivacyPolicyContent() {
                 <span className="material-symbols-outlined text-emerald-600 mt-0.5">check_circle</span>
                 <div>
                   <h5 className="font-bold text-on-surface">Algorithmic Processing</h5>
-                  <p className="text-on-surface-variant text-sm">Refining the TrueCost formula to account for seasonal and geopolitical economic shifts.</p>
+                  <p className="text-on-surface-variant text-sm">Refining the {env.APP_NAME} formula to account for seasonal and geopolitical economic shifts.</p>
                 </div>
               </div>
               <div className="flex gap-4">
@@ -377,7 +353,7 @@ function PrivacyPolicyContent() {
               <div className="flex gap-4">
                 <span className="material-symbols-outlined text-emerald-600 mt-0.5">check_circle</span>
                 <div>
-                  <h5 className="font-bold text-on-surface">TrueCost Calculation</h5>
+                  <h5 className="font-bold text-on-surface">{env.APP_NAME} Calculation</h5>
                   <p className="text-on-surface-variant text-sm">Merging user-specific parameters with regional datasets for precision budgeting.</p>
                 </div>
               </div>
@@ -479,7 +455,7 @@ function TermsOfServiceContent() {
             <div>
               <h2 className="text-2xl font-bold text-primary mb-6 tracking-tight">Acceptance of Terms</h2>
               <div className="space-y-4 text-on-surface-variant leading-relaxed">
-                <p>By accessing or using the TrueCost Rent platform (the &quot;Service&quot;), you acknowledge that you have read, understood, and agree to be bound by these Terms of Service. These terms constitute a legally binding agreement between you and TrueCost Rent Inc. regarding your use of our institutional-grade rental analytics and financial modeling tools.</p>
+                <p>By accessing or using the {env.APP_NAME} platform (the &quot;Service&quot;), you acknowledge that you have read, understood, and agree to be bound by these Terms of Service. These terms constitute a legally binding agreement between you and {env.COMPANY_NAME} regarding your use of our institutional-grade rental analytics and financial modeling tools.</p>
                 <p>If you are entering into these terms on behalf of a corporation or other legal entity, you represent that you have the legal authority to bind such entity to these terms.</p>
               </div>
             </div>
@@ -515,7 +491,7 @@ function TermsOfServiceContent() {
               <div>
                 <h2 className="text-2xl font-bold text-white mb-6 tracking-tight">Intellectual Property Rights</h2>
                 <p className="leading-relaxed text-surface-container-low/90 font-medium text-lg">
-                  All proprietary algorithms, &quot;TrueCost&quot; calculation engines, data visualizations, and the &quot;Editorial Ledger&quot; design system are the exclusive property of TrueCost Rent. No portion of the analytical output may be reproduced, reverse-engineered, or redistributed for commercial use without express written consent from our Legal Compliance Department.
+                  All proprietary algorithms, &quot;{env.APP_NAME}&quot; calculation engines, data visualizations, and the &quot;Editorial Ledger&quot; design system are the exclusive property of {env.COMPANY_NAME}. No portion of the analytical output may be reproduced, reverse-engineered, or redistributed for commercial use without express written consent from our Legal Compliance Department.
                 </p>
               </div>
             </div>
@@ -556,7 +532,7 @@ function TermsOfServiceContent() {
             <div>
               <h2 className="text-2xl font-bold text-primary mb-6 tracking-tight">Limitation of Liability</h2>
               <p className="text-on-surface-variant leading-relaxed italic font-medium">
-                &quot;TrueCost Rent provides analytical tools for informational purposes. While we strive for 99.9% data accuracy, we do not provide legal or financial advice. We are not liable for any financial decisions made based on platform projections.&quot;
+                &quot;{env.APP_NAME} provides analytical tools for informational purposes. While we strive for 99.9% data accuracy, we do not provide legal or financial advice. We are not liable for any financial decisions made based on platform projections.&quot;
               </p>
             </div>
           </div>

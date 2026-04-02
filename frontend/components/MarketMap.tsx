@@ -6,6 +6,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useTheme } from "next-themes";
 import { useMapStyle } from "@/components/MapStyleProvider";
 import type { Property } from "@/types/property";
+import { useRouter } from "next/navigation";
+import { buildPropertyUrl } from "@/routes";
 
 export interface MarketMapProps {
   properties: Property[];
@@ -42,6 +44,7 @@ export default function MarketMap({ properties, regionDelta = -12.4, onBoundsCha
 
   const { resolvedTheme } = useTheme();
   const { mapStyle: userMapStyle } = useMapStyle();
+  const router = useRouter();
 
   const mapStyleUrl = useMemo(() => {
     switch (userMapStyle) {
@@ -112,6 +115,10 @@ export default function MarketMap({ properties, regionDelta = -12.4, onBoundsCha
               longitude={property.longitude}
               latitude={property.latitude}
               anchor="bottom"
+              onClick={e => {
+                e.originalEvent.stopPropagation();
+                router.push(buildPropertyUrl(property.id));
+              }}
             >
               <Pin value={property.trueCost} isVerified={property.isVerified} />
             </Marker>

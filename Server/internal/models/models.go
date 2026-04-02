@@ -20,6 +20,7 @@ type Property struct {
 	Longitude    float64      `gorm:"not null;default:0"          json:"longitude"`
 	WebsiteURL   string       `gorm:"not null"                   json:"website_url"`
 	ImageURL     string       `gorm:"type:text"                  json:"image_url"`
+	PropertyType string       `gorm:"default:'Apartments'"       json:"property_type"` // e.g. Apartments, Commercial, New Construction
 	Units        []Unit       `gorm:"foreignKey:PropertyID"      json:"units,omitempty"`
 	FeeStructure FeeStructure `gorm:"foreignKey:PropertyID"    json:"fee_structure,omitempty"`
 }
@@ -80,6 +81,7 @@ type User struct {
 	Settings             UserSettings         `gorm:"embedded;embeddedPrefix:settings_" json:"settings"`
 	Alerts               []UserWatchlistAlert `gorm:"foreignKey:UserID" json:"alerts,omitempty"`
 	ResourceUsage        []ResourceUsage      `gorm:"foreignKey:UserID" json:"resource_usage,omitempty"`
+	SavedProperties      []UserSavedProperty  `gorm:"foreignKey:UserID" json:"saved_properties,omitempty"`
 }
 
 // SubscriptionTier defines the access priority and hard limits for an account tier.
@@ -145,4 +147,11 @@ type AdminSetting struct {
 	Value        string `gorm:"type:text;not null"   json:"value"`
 	Description  string `gorm:"type:text"            json:"description"`
 	UpdatedByUID string `gorm:"index"               json:"updated_by_uid,omitempty"`
+}
+
+// UserSavedProperty represents a property explicitly bookmarked by a user.
+type UserSavedProperty struct {
+	gorm.Model
+	UserID     uint `gorm:"not null;uniqueIndex:idx_user_property" json:"user_id"`
+	PropertyID uint `gorm:"not null;uniqueIndex:idx_user_property" json:"property_id"`
 }

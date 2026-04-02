@@ -74,3 +74,50 @@ func (h *Handler) StripeWebhook(c *gin.Context) {
 	zap.L().Info("Stripe Webhook Processed", zap.String("eventType", string(event.Type)))
 	c.JSON(http.StatusOK, gin.H{"status": "received"})
 }
+
+// PortalRequest represents the payload for creating a customer portal session
+type PortalRequest struct {
+	ReturnURL string `json:"return_url" binding:"required,url"`
+}
+
+// CreateCustomerPortalSession initializes a Stripe Billing Portal session.
+func (h *Handler) CreateCustomerPortalSession(c *gin.Context) {
+	if h.Stripe == nil || !h.Stripe.IsConfigured() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Payment system not configured"})
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var req PortalRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload", "details": err.Error()})
+		return
+	}
+
+	dbUser, err := h.User.GetProfile(c.Request.Context(), userID.(string))
+	if err != nil || dbUser == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+		return
+	}
+
+	if dbUser.StripeCustomerID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No billing customer found for user"})
+		return
+	}
+
+	url, err := h.Stripe.CreateCustomerPortalSession(c.Request.Context(), dbUser.StripeCustomerID, req.ReturnURL)
+	if err != nil {
+		zap.L().Error("Failed to create portal session", zap.Error(err), zap.String("userID", userID.(string)))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize billing portal"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"url": url,
+	})
+}

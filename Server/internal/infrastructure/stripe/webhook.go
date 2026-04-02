@@ -14,13 +14,13 @@ import (
 
 // WebhookService processes incoming webhooks from Stripe
 type WebhookService struct {
-	svc *Service
+	svc    *Service
 	logger *zap.Logger
 }
 
 func NewWebhookService(svc *Service, logger *zap.Logger) *WebhookService {
 	return &WebhookService{
-		svc: svc,
+		svc:    svc,
 		logger: logger,
 	}
 }

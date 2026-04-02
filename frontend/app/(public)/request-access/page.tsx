@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/context/AuthContext";
 import { validatePassword, validateEmail, validateFullName } from "@/utils/validation";
+import { env } from "@/lib/env";
 
 export default function RequestAccessPage() {
   const [formData, setFormData] = useState({
@@ -114,7 +115,7 @@ export default function RequestAccessPage() {
 
           {/* Footer Text */}
           <div className="relative z-10 text-[10px] uppercase tracking-[0.2em] text-on-primary-container/60 font-bold hidden md:block">
-            TrueCost Rent © 2025
+            {env.APP_NAME} © 2025
           </div>
         </section>
 
@@ -123,7 +124,7 @@ export default function RequestAccessPage() {
           <div className="w-full max-w-xl">
             <div className="mb-12">
               <h2 className="text-3xl font-bold text-on-surface tracking-tight mb-2">Create Your Account</h2>
-              <p className="text-on-surface-variant font-medium">Join TrueCost Rent to securely access true market intelligence.</p>
+              <p className="text-on-surface-variant font-medium">Join {env.APP_NAME} to securely access true market intelligence.</p>
             </div>
             
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -246,7 +247,7 @@ export default function RequestAccessPage() {
               {/* Text Area */}
               <div className="space-y-2">
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant" htmlFor="useCase">
-                  How will you use TrueCost?
+                  How will you use {env.APP_NAME}?
                 </label>
                 <textarea 
                   id="useCase"
@@ -324,7 +325,7 @@ export default function RequestAccessPage() {
       <footer className="bg-surface-container-low py-12 px-6 md:px-12 w-full mt-auto border-t border-outline-variant/10">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 text-on-surface-variant">
           <div className="text-xs font-medium text-center md:text-left">
-            © 2024 TrueCost Rent
+            © 2024 {env.APP_NAME}
           </div>
           <div className="flex flex-wrap justify-center md:justify-end gap-8 text-[11px] font-semibold text-outline tracking-wide">
             <Link className="hover:text-primary transition-colors" href="/legal?tab=terms">Terms of Service</Link>

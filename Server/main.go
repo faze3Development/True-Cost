@@ -79,6 +79,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	db.WarnIfSuperuser(database)
+
 	if err := migrations.Run(database); err != nil {
 		zap.L().Error("migrations failed", zap.Error(err))
 		os.Exit(1)

@@ -71,3 +71,33 @@ export const getVisibleSidebarLinks = (
     canAccessRoute(link.href, isAuthenticated, isAdmin)
   );
 };
+
+/**
+ * Build URL for a property detail page.
+ * Centralizes property navigation logic to prevent URL format inconsistencies.
+ * @param propertyId - The property ID to navigate to
+ * @returns The property detail page URL
+ */
+export const buildPropertyUrl = (propertyId: string | number): string => {
+  return `/property/${propertyId}`;
+};
+
+/**
+ * Build URL for analytics page with optional property filter.
+ * @param propertyId - Optional property ID to filter analytics
+ * @returns The analytics page URL
+ */
+export const buildAnalyticsUrl = (propertyId?: string | number): string => {
+  if (propertyId) {
+    return `/analytics?propertyId=${propertyId}`;
+  }
+  return `/analytics`;
+};
+
+/**
+ * Build URL for reports page.
+ * @returns The reports page URL
+ */
+export const buildReportsUrl = (): string => {
+  return `/reports`;
+};

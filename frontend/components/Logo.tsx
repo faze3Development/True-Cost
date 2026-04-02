@@ -1,4 +1,9 @@
+import { env } from "@/lib/env";
+
 export function Logo({ className }: { className?: string }) {
+  const [primaryWord, ...rest] = env.APP_NAME.split(" ");
+  const secondaryWord = rest.join(" ");
+
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
       <svg
@@ -33,11 +38,13 @@ export function Logo({ className }: { className?: string }) {
       </svg>
       <div className="flex flex-col pt-0.5" style={{ color: "currentColor" }}>
         <span className="text-[19px] font-bold leading-none tracking-tight">
-          TrueCost
+          {primaryWord}
         </span>
-        <span className="text-[14px] font-medium leading-tight tracking-[0.02em] opacity-80">
-          Rent
-        </span>
+        {secondaryWord && (
+          <span className="text-[14px] font-medium leading-tight tracking-[0.02em] opacity-80">
+            {secondaryWord}
+          </span>
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/faze3Development/true-cost/Server/internal/infrastructure/dbctx"
 	"github.com/faze3Development/true-cost/Server/internal/infrastructure/tenant"
 	"github.com/faze3Development/true-cost/Server/internal/models"
 	"go.uber.org/zap"
@@ -36,7 +37,8 @@ func NewRepository(db *gorm.DB, logger *zap.Logger) Repository {
 func (r *repository) GetUserByUID(ctx context.Context, uid string) (*models.User, error) {
 	var user models.User
 	tenantKey := tenant.FromContext(ctx)
-	if err := r.db.WithContext(ctx).Where("uid = ? AND tenant_key = ?", uid, tenantKey).First(&user).Error; err != nil {
+	db := dbctx.GetDB(ctx, r.db)
+	if err := db.WithContext(ctx).Preload("SavedProperties").Where("uid = ? AND tenant_key = ?", uid, tenantKey).First(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("user not found")
 		}
@@ -48,7 +50,8 @@ func (r *repository) GetUserByUID(ctx context.Context, uid string) (*models.User
 func (r *repository) GetUserByStripeCustomer(ctx context.Context, customerID string) (*models.User, error) {
 	var user models.User
 	tenantKey := tenant.FromContext(ctx)
-	if err := r.db.WithContext(ctx).Where("stripe_customer_id = ? AND tenant_key = ?", customerID, tenantKey).First(&user).Error; err != nil {
+	db := dbctx.GetDB(ctx, r.db)
+	if err := db.WithContext(ctx).Where("stripe_customer_id = ? AND tenant_key = ?", customerID, tenantKey).First(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("user not found for customer %s", customerID)
 		}
@@ -60,8 +63,9 @@ func (r *repository) GetUserByStripeCustomer(ctx context.Context, customerID str
 func (r *repository) GetOrCreateUser(ctx context.Context, uid, email, displayName string) (*models.User, error) {
 	var user models.User
 	tenantKey := tenant.FromContext(ctx)
+	db := dbctx.GetDB(ctx, r.db)
 
-	err := r.db.WithContext(ctx).Where("uid = ? AND tenant_key = ?", uid, tenantKey).First(&user).Error
+	err := db.WithContext(ctx).Where("uid = ? AND tenant_key = ?", uid, tenantKey).First(&user).Error
 	if err == nil {
 		return &user, nil // found
 	}
@@ -79,7 +83,7 @@ func (r *repository) GetOrCreateUser(ctx context.Context, uid, email, displayNam
 		TierID:      "free",
 	}
 
-	if err := r.db.WithContext(ctx).Create(&user).Error; err != nil {
+	if err := db.WithContext(ctx).Create(&user).Error; err != nil {
 		return nil, fmt.Errorf("error creating user: %w", err)
 	}
 
@@ -91,8 +95,9 @@ func (r *repository) UpdateUser(ctx context.Context, uid string, updates map[str
 		return r.GetUserByUID(ctx, uid)
 	}
 	tenantKey := tenant.FromContext(ctx)
+	db := dbctx.GetDB(ctx, r.db)
 
-	err := r.db.WithContext(ctx).Model(&models.User{}).Where("uid = ? AND tenant_key = ?", uid, tenantKey).Updates(updates).Error
+	err := db.WithContext(ctx).Model(&models.User{}).Where("uid = ? AND tenant_key = ?", uid, tenantKey).Updates(updates).Error
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +107,8 @@ func (r *repository) UpdateUser(ctx context.Context, uid string, updates map[str
 
 func (r *repository) GetTierByID(ctx context.Context, tierID string) (*models.SubscriptionTier, error) {
 	var tier models.SubscriptionTier
-	if err := r.db.WithContext(ctx).Where("id = ?", tierID).First(&tier).Error; err != nil {
+	db := dbctx.GetDB(ctx, r.db)
+	if err := db.WithContext(ctx).Where("id = ?", tierID).First(&tier).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("tier not found")
 		}
@@ -114,7 +120,8 @@ func (r *repository) GetTierByID(ctx context.Context, tierID string) (*models.Su
 func (r *repository) IncrementResourceUsage(ctx context.Context, uid, resourceType string, amount int) error {
 	var user models.User
 	tenantKey := tenant.FromContext(ctx)
-	if err := r.db.WithContext(ctx).Where("uid = ? AND tenant_key = ?", uid, tenantKey).First(&user).Error; err != nil {
+	db := dbctx.GetDB(ctx, r.db)
+	if err := db.WithContext(ctx).Where("uid = ? AND tenant_key = ?", uid, tenantKey).First(&user).Error; err != nil {
 		return err
 	}
 
@@ -140,5 +147,5 @@ func (r *repository) IncrementResourceUsage(ctx context.Context, uid, resourceTy
 	}
 
 	// Save the JSONB / Array back cleanly
-	return r.db.WithContext(ctx).Model(&user).Update("resource_usage", user.ResourceUsage).Error
+	return db.WithContext(ctx).Model(&user).Update("resource_usage", user.ResourceUsage).Error
 }

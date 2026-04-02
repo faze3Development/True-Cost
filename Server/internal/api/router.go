@@ -16,8 +16,8 @@ import (
 	"github.com/faze3Development/true-cost/Server/internal/infrastructure/auth"
 	"github.com/faze3Development/true-cost/Server/internal/infrastructure/businessValidation"
 	"github.com/faze3Development/true-cost/Server/internal/infrastructure/errors"
-	"github.com/faze3Development/true-cost/Server/internal/infrastructure/rbac"
 	"github.com/faze3Development/true-cost/Server/internal/infrastructure/ratelimit"
+	"github.com/faze3Development/true-cost/Server/internal/infrastructure/rbac"
 	"github.com/faze3Development/true-cost/Server/internal/infrastructure/security"
 	"github.com/faze3Development/true-cost/Server/internal/infrastructure/stripe"
 	"github.com/faze3Development/true-cost/Server/internal/infrastructure/user"
@@ -36,6 +36,9 @@ func NewRouter(db *gorm.DB, cfg *config.Config, authClient *auth.Client) *gin.En
 
 	// Apply Global Error Interceptor
 	r.Use(errors.GlobalErrorHandler())
+
+	// Establish request-scoped DB context for Postgres RLS.
+	r.Use(withTenantDBContext(db, cfg.DBRuntimeRole))
 
 	// Apply Security Headers & Anti-MIME sniff
 	r.Use(security.SecurityHeaders())
@@ -89,7 +92,10 @@ func NewRouter(db *gorm.DB, cfg *config.Config, authClient *auth.Client) *gin.En
 			// User Protected Routes
 			protected.GET("/users/me/settings", h.GetUserSettings)
 			protected.PUT("/users/me/settings", h.UpdateUserSettings)
+			protected.POST("/users/me/saved-properties/:id", h.AddSavedProperty)
+			protected.DELETE("/users/me/saved-properties/:id", h.RemoveSavedProperty)
 			protected.POST("/stripe/checkout", h.CreateCheckoutSession)
+			protected.POST("/stripe/portal", h.CreateCustomerPortalSession)
 
 			adminRoutes := protected.Group("/admin")
 			adminRoutes.Use(admin.RequireAdmin(userModule.Service))
@@ -99,6 +105,14 @@ func NewRouter(db *gorm.DB, cfg *config.Config, authClient *auth.Client) *gin.En
 				adminRoutes.GET("/settings", rbac.RequirePermission(rbacModule.Service, rbac.PermissionAdminSettingsRead), adminModule.Handler.ListAdminSettings)
 				adminRoutes.GET("/system-settings", rbac.RequirePermission(rbacModule.Service, rbac.PermissionSystemSettingsRead), adminModule.Handler.ListSystemSettings)
 				adminRoutes.PUT("/system-settings/:key", rbac.RequirePermission(rbacModule.Service, rbac.PermissionSystemSettingsWrite), adminModule.Handler.UpsertSystemSetting)
+				adminRoutes.GET("/tenants", rbac.RequirePermission(rbacModule.Service, rbac.PermissionTenantsRead), adminModule.Handler.ListTenants)
+				adminRoutes.POST("/tenants", rbac.RequirePermission(rbacModule.Service, rbac.PermissionTenantsWrite), adminModule.Handler.CreateTenant)
+				adminRoutes.PUT("/tenants/:tenantKey", rbac.RequirePermission(rbacModule.Service, rbac.PermissionTenantsWrite), adminModule.Handler.UpdateTenant)
+				adminRoutes.GET("/rbac/roles", rbac.RequirePermission(rbacModule.Service, rbac.PermissionRBACRead), adminModule.Handler.ListRoles)
+				adminRoutes.POST("/rbac/roles", rbac.RequirePermission(rbacModule.Service, rbac.PermissionRBACWrite), adminModule.Handler.CreateRole)
+				adminRoutes.GET("/rbac/permissions", rbac.RequirePermission(rbacModule.Service, rbac.PermissionRBACRead), adminModule.Handler.ListPermissions)
+				adminRoutes.PUT("/rbac/roles/:roleID/permissions", rbac.RequirePermission(rbacModule.Service, rbac.PermissionRBACWrite), adminModule.Handler.SetRolePermissions)
+				adminRoutes.PUT("/rbac/users/:uid/roles", rbac.RequirePermission(rbacModule.Service, rbac.PermissionRBACWrite), adminModule.Handler.SetUserRoles)
 			}
 		}
 	}

@@ -8,6 +8,7 @@ import { Logo } from "@/components/Logo";
 import { useAuth } from "@/context/AuthContext";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { env } from "@/lib/env";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -71,7 +72,7 @@ export default function LoginPage() {
             <Logo className="mb-4 scale-150 transform justify-center text-on-surface" />
             <div className="space-y-2">
               <h1 className="text-4xl font-extrabold editorial-tight text-on-surface">
-                TrueCost Rent
+                {env.APP_NAME}
               </h1>
               <p className="text-on-surface-variant font-medium text-sm label-refined">
                 Transparency in Renting
@@ -199,7 +200,7 @@ export default function LoginPage() {
           {/* Standard Footer */}
           <footer className="pt-12 mt-12 border-t border-outline-variant/20 flex flex-col justify-between items-center gap-6 text-on-surface-variant">
             <div className="text-xs font-medium text-center">
-              © 2024 TrueCost Rent
+              © 2024 {env.APP_NAME}
             </div>
             <div className="flex flex-wrap justify-center gap-8 text-[11px] font-semibold text-outline tracking-wide">
               <Link className="hover:text-primary transition-colors" href="/legal?tab=terms">Terms of Service</Link>

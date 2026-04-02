@@ -16,6 +16,10 @@ type Config struct {
 	DBName     string
 	DBSSLMode  string
 
+	// Optional: force an effective role for request transactions.
+	// This helps avoid accidentally running as a superuser (which bypasses Postgres RLS).
+	DBRuntimeRole string
+
 	// Database Connection Pool
 	DBMaxIdleConns    int
 	DBMaxOpenConns    int
@@ -62,12 +66,13 @@ type Config struct {
 // Missing required fields cause an error to be returned.
 func Load() (*Config, error) {
 	cfg := &Config{
-		DBHost:     getEnv("DB_HOST", "localhost"),
-		DBPort:     getEnv("DB_PORT", "5432"),
-		DBUser:     getEnv("DB_USER", "postgres"),
-		DBPassword: getEnv("DB_PASSWORD", ""),
-		DBName:     getEnv("DB_NAME", "truecost"),
-		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
+		DBHost:        getEnv("DB_HOST", "localhost"),
+		DBPort:        getEnv("DB_PORT", "5432"),
+		DBUser:        getEnv("DB_USER", "postgres"),
+		DBPassword:    getEnv("DB_PASSWORD", ""),
+		DBName:        getEnv("DB_NAME", "truecost"),
+		DBSSLMode:     getEnv("DB_SSLMODE", "disable"),
+		DBRuntimeRole: getEnv("DB_RUNTIME_ROLE", ""),
 
 		DBMaxIdleConns:    getEnvInt("DB_MAX_IDLE_CONNS", 10),
 		DBMaxOpenConns:    getEnvInt("DB_MAX_OPEN_CONNS", 100),

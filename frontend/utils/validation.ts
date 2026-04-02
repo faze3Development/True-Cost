@@ -67,3 +67,7 @@ export const sanitizeInput = (input: string): string => {
     .replace(ValidationPatterns.denyScriptTags, "")
     .replace(ValidationPatterns.denyJavascriptURI, "");
 };
+
+
+// Backward-compatible re-exports from the centralized security module.
+export { isValidEntityId, isValidPropertyId, isValidUnitId } from "@/security";

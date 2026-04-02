@@ -47,6 +47,12 @@ const SAVED_REPORTS: SavedReportCardProps[] = [
   },
 ];
 
+const REPORT_EXPORT_ROWS = SAVED_REPORTS.map((report) => ({
+  title: report.title,
+  concessionVelocity: report.concessionVelocity,
+  priceVolatility: report.priceVolatility,
+}));
+
 export default function ReportsPage() {
   return (
     <AppLayout>
@@ -80,7 +86,7 @@ export default function ReportsPage() {
         </section>
 
         {/* Data Exports CTA */}
-        <DataExportBanner />
+        <DataExportBanner rows={REPORT_EXPORT_ROWS} />
 
         {/* System Footer */}
         <SystemStatusBar />

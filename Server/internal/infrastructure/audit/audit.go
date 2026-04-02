@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/faze3Development/true-cost/Server/internal/infrastructure/dbctx"
 	"github.com/faze3Development/true-cost/Server/internal/infrastructure/logging"
 	"github.com/faze3Development/true-cost/Server/internal/infrastructure/tenant"
 	"github.com/faze3Development/true-cost/Server/internal/models"
@@ -142,7 +143,8 @@ func (al *AuditLogger) LogSecurityEvent(ctx context.Context, event SecurityEvent
 	}
 
 	// Store in database
-	if err := al.db.WithContext(ctx).Create(&modelEvent).Error; err != nil {
+	db := dbctx.GetDB(ctx, al.db)
+	if err := db.WithContext(ctx).Create(&modelEvent).Error; err != nil {
 		al.logger.Error("Failed to store security event",
 			zap.Error(err),
 			zap.String("event_type", string(event.EventType)),

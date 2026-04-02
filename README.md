@@ -1,6 +1,6 @@
 # True-Cost
 
-A scalable Go backend that tracks historical apartment pricing, hidden fees, and concessions via daily web scraping to expose the **real cost of renting**. Instead of showing only the advertised rent, True-Cost calculates what a tenant will actually pay each month by factoring in recurring fees (trash, amenities, parking, packages) and any applied concessions.
+A full-stack app (Next.js frontend + Go backend) that tracks historical apartment pricing, hidden fees, and concessions via daily web scraping to expose the **real cost of renting**. Instead of showing only the advertised rent, True-Cost calculates what a tenant will actually pay each month by factoring in recurring fees (trash, amenities, parking, packages) and any applied concessions.
 
 ## Table of Contents
 
@@ -10,6 +10,8 @@ A scalable Go backend that tracks historical apartment pricing, hidden fees, and
 - [Data Models](#data-models)
 - [Configuration](#configuration)
 - [Local Development](#local-development)
+- [Admin & Management](#admin--management)
+- [Multi-tenancy & RLS](#multi-tenancy--rls)
 - [Docker & Deployment](#docker--deployment)
 - [Technology Stack](#technology-stack)
 
@@ -17,31 +19,30 @@ A scalable Go backend that tracks historical apartment pricing, hidden fees, and
 
 ## Architecture
 
-The project is split into two independently deployable services, both compiled from this single repository:
+The project is split into a Next.js frontend and two Go services (API + worker), all in this single repository:
 
 ```
 True-Cost/
-├── cmd/
-│   ├── api/        # REST API service  (port 8080)
-│   └── worker/     # Scraper + job worker service  (port 8081)
-├── internal/
-│   ├── api/        # Gin router & HTTP handlers
-│   ├── config/     # Environment-based configuration
-│   ├── db/         # PostgreSQL connection & auto-migration
-│   ├── jobs/       # Asynq task definitions, producer, consumer
-│   ├── models/     # GORM data models
-│   └── scraper/    # Headless-Chrome scraper (chromedp)
-├── Dockerfile      # Multi-stage build for both services
+├── frontend/            # Next.js 14 app (port 3000)
+├── Server/              # Go services
+│   ├── cmd/
+│   │   └── api/         # REST API service (port 8080)
+│   ├── internal/        # handlers, infra modules, config, db, jobs, etc.
+│   ├── migrations/      # gormigrate migrations
+│   └── main.go          # Worker entrypoint (producer + consumer; producer HTTP on 8081)
+├── docker-compose.yml   # Local Postgres + Redis + API + worker
+├── Dockerfile           # Multi-stage build for API + worker images
 ├── go.mod
 └── go.sum
 ```
 
 | Service | Image base | Responsibility |
 |---------|-----------|----------------|
-| **API** | `distroless/static-debian12` | Serves the REST API; stateless, scales to zero |
+| **Frontend** | *(not in Dockerfile)* | Next.js web UI (auth, maps, admin pages) |
+| **API** | `distroless/static-debian12` | Serves the REST API |
 | **Worker** | `chromedp/headless-shell` | Runs headless Chrome, processes scrape jobs from Redis |
 
-Both services share the same PostgreSQL database. The Worker also requires a Redis instance for the Asynq job queue.
+All services share the same PostgreSQL database. The Worker also requires a Redis instance for the Asynq job queue.
 
 ---
 
@@ -159,7 +160,9 @@ A single scraped data point captured on a specific day.
 
 ## Configuration
 
-Configuration is loaded from environment variables. The only **required** variable is `DB_PASSWORD`; all others have defaults suitable for local development.
+### Server (Go)
+
+Server configuration is loaded from environment variables. The only **required** variable is `DB_PASSWORD`; all others have defaults suitable for local development.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -169,9 +172,24 @@ Configuration is loaded from environment variables. The only **required** variab
 | `DB_PASSWORD` | *(required)* | PostgreSQL password |
 | `DB_NAME` | `truecost` | PostgreSQL database name |
 | `DB_SSLMODE` | `disable` | PostgreSQL SSL mode |
+| `DB_RUNTIME_ROLE` | *(empty)* | Optional: `SET LOCAL ROLE` for request transactions (helps ensure RLS isn't bypassed by superuser) |
 | `REDIS_ADDR` | `localhost:6379` | Redis address (worker only) |
 | `PORT` | `8080` | HTTP listen port |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated allowlist for CORS |
 | `ADMIN_BOOTSTRAP_SECRET` | *(empty)* | One-time secret required to call `POST /api/v1/admin/bootstrap` for first admin promotion |
+
+In non-production environments, both Go services load local env files automatically:
+
+- `Server/.env`
+- `.env` (fallback)
+
+### Frontend (Next.js)
+
+Frontend configuration is via Next.js environment variables (for local dev, use `frontend/.env.local`).
+
+- `NEXT_PUBLIC_API_URL` (default: `http://localhost:8080/api/v1`)
+- `NEXT_PUBLIC_FIREBASE_*` (required for auth-protected pages)
+- `NEXT_PUBLIC_STRIPE_*` (required for subscriptions/checkout)
 
 ---
 
@@ -179,17 +197,54 @@ Configuration is loaded from environment variables. The only **required** variab
 
 ### Prerequisites
 
-- Go 1.24+
-- PostgreSQL
-- Redis
-- Chrome / Chromium (for the worker)
+- Go 1.25+
+- Node.js 18+ (for the Next.js frontend)
+- PostgreSQL + Redis (or use `docker compose`)
+- Chrome / Chromium (if running the worker locally)
+
+### Start dependencies (recommended)
+
+```bash
+docker compose up -d postgres redis
+```
+
+### Configure env
+
+1. Copy `Server/.env.example` → `Server/.env`
+2. Set at least `DB_PASSWORD` (and optionally `ADMIN_BOOTSTRAP_SECRET`)
+        - If you start Postgres via `docker compose` without a root `.env`, the compose default is `DB_PASSWORD=changeme`.
 
 ### Run the API
 
 ```bash
-export DB_PASSWORD=your_password
-go run ./cmd/api
+go run ./Server/cmd/api
 ```
+
+### Run the Worker (optional)
+
+```bash
+go run ./Server
+```
+
+The worker exposes `POST /enqueue` on port 8081. Trigger a scrape manually with:
+
+```bash
+curl -X POST http://localhost:8081/enqueue
+```
+
+### Run the Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+To bootstrap the first admin, see [Admin & Management](#admin--management).
+
+---
+
+## Admin & Management
 
 ### Bootstrap First Admin (One-Time)
 
@@ -213,25 +268,27 @@ Windows shortcut:
 powershell -ExecutionPolicy Bypass -File Server/scripts/bootstrap-admin.ps1 -Email "admin@example.com" -Secret "<your-secret>"
 ```
 
-### Run the Worker
+### Admin UI pages
 
-```bash
-export DB_PASSWORD=your_password
-export REDIS_ADDR=localhost:6379
-go run ./cmd/worker
-```
+- `/admin` — top navigation config editor
+- `/admin/management` — operational management UI (tenants, system settings, RBAC)
 
-The worker exposes `POST /enqueue` on port 8081. Trigger a scrape manually with:
+---
 
-```bash
-curl -X POST http://localhost:8081/enqueue
-```
+## Multi-tenancy & RLS
+
+The API supports multi-tenancy via an `X-Tenant-Key` header. For tenant-scoped tables, Postgres Row-Level Security (RLS) policies enforce that requests can only access rows for the active tenant.
+
+- **Tenant selection**: `X-Tenant-Key: <tenant_key>` (defaults to `default` if omitted)
+- **RLS implementation**: the API starts a request-scoped transaction and sets a transaction-local Postgres setting (`app.tenant_key`). RLS policies use `current_setting('app.tenant_key', true)`.
+- **Superuser caveat**: Postgres superusers (and roles with `BYPASSRLS`) bypass RLS. The API/worker log a warning at startup if connected as a superuser.
+- **`DB_RUNTIME_ROLE` (optional)**: the API can run each request transaction under an effective role via `SET LOCAL ROLE ...` (requires the configured DB user to have permission to `SET ROLE`).
 
 ---
 
 ## Docker & Deployment
 
-The `Dockerfile` uses a multi-stage build to produce two separate images from the same source tree.
+The `Dockerfile` uses a multi-stage build to produce two separate images (API + worker) from the same source tree. The frontend is built/deployed separately from `frontend/`.
 
 ### Build
 
@@ -271,12 +328,15 @@ Both images are designed for GCP Cloud Run:
 
 ## Technology Stack
 
-| Component | Library | Version |
-|-----------|---------|---------|
-| HTTP framework | [Gin](https://github.com/gin-gonic/gin) | v1.9.1 |
-| ORM | [GORM](https://gorm.io) | v1.25.12 |
-| PostgreSQL driver | gorm/driver/postgres (pgx v5) | v1.5.11 |
-| Job queue | [Asynq](https://github.com/hibiken/asynq) | v0.24.1 |
-| Queue backend | Redis (go-redis v9) | v9.0.3 |
-| Web scraper | [chromedp](https://github.com/chromedp/chromedp) | v0.10.0 |
-| Logging | slog (stdlib) | — |
+| Area | Tech |
+|------|------|
+| Frontend | Next.js 14, React 18, TypeScript, Tailwind |
+| API | Go, Gin, GORM |
+| Auth | Firebase (Admin SDK on backend; Firebase JS SDK on frontend) |
+| Jobs | Asynq + Redis |
+| Data | PostgreSQL + gormigrate |
+| Scraper | chromedp / headless Chrome |
+| Payments | Stripe |
+| Logging | zap |
+
+See `go.mod` and `frontend/package.json` for exact dependency versions.

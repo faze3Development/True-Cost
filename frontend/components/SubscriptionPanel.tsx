@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { createCheckoutSession } from "@/api/stripe";
+import { useAuth } from '@/context/AuthContext';
 import { env } from "@/lib/env";
 
 export default function SubscriptionPanel() {
@@ -32,7 +33,7 @@ export default function SubscriptionPanel() {
   return (
     <div className="p-8 rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-2xl">
       <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600 mb-4">
-        TrueCost Pro
+        {env.APP_NAME} Pro
       </h2>
       <p className="text-gray-300 mb-8">
         Unlock institutional-grade market data, unlimited alerts, and comprehensive real-time pricing analytics.
@@ -40,7 +41,7 @@ export default function SubscriptionPanel() {
       
       <div className="flex flex-col gap-4 mb-8">
         <ul className="space-y-3 text-gray-400">
-          <li className="flex items-center gap-2">✓ Unlimited TrueCost Reports</li>
+          <li className="flex items-center gap-2">✓ Unlimited {env.APP_NAME} Reports</li>
           <li className="flex items-center gap-2">✓ Real-time Property Alerts</li>
           <li className="flex items-center gap-2">✓ Market Macro Trends</li>
           <li className="flex items-center gap-2">✓ Historical Pricing Data</li>

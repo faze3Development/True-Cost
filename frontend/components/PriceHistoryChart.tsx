@@ -2,6 +2,7 @@
 
 import { useUnitHistory } from "@/hooks/useUnitHistory";
 import type { UnitHistoryPoint } from "@/types/unitHistory";
+import { env } from "@/lib/env";
 import {
   CartesianGrid,
   Line,
@@ -32,7 +33,7 @@ const EditorialTooltip = ({ active, payload, label }: TooltipProps<number, strin
         </div>
 
         <div className="mt-2 flex justify-between border-t border-white/10 pt-2 text-[#10B981]">
-          <span className="font-bold">True Cost:</span>
+          <span className="font-bold">{env.APP_NAME}:</span>
           <span className="tabular-nums font-bold">${data.trueCost.toLocaleString()}</span>
         </div>
 

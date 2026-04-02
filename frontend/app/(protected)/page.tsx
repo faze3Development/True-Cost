@@ -6,11 +6,12 @@ import ListingsFeed from "@/components/ListingsFeed";
 import MarketMap from "@/components/MarketMap";
 import { useProperties } from "@/hooks/useProperties";
 import type { Property } from "@/types/property";
+import { env } from "@/lib/env";
 
 const filters = [
   { label: "Beds", value: "2+" },
   { label: "Baths", value: "1+" },
-  { label: "Max TrueCost", value: "$4,000" },
+  { label: `Max ${env.APP_NAME}`, value: "$4,000" },
 ];
 
 export default function Page() {

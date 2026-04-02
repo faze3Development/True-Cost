@@ -29,23 +29,36 @@ type Service interface {
 	ListSystemSettings(ctx context.Context) ([]models.SystemSetting, error)
 	UpdateSystemSetting(ctx context.Context, key, value, description, updatedByUID string) error
 	ListAdminSettings(ctx context.Context) ([]models.AdminSetting, error)
+	ListTenants(ctx context.Context) ([]models.Tenant, error)
+	CreateTenant(ctx context.Context, tenantKey, name, status, createdByUID string) (*models.Tenant, error)
+	UpdateTenant(ctx context.Context, tenantKey string, name, status *string, updatedByUID string) (*models.Tenant, error)
 	BootstrapInitialAdmin(ctx context.Context, bootstrapSecret, uid, email string) (string, error)
+	ListRoles(ctx context.Context) ([]models.Role, error)
+	CreateRole(ctx context.Context, name, description, createdByUID string) (*models.Role, error)
+	ListPermissions(ctx context.Context) ([]models.Permission, error)
+	SetRolePermissions(ctx context.Context, roleID uint, permissionKeys []string, updatedByUID string) error
+	SetUserRoles(ctx context.Context, userUID string, roleIDs []uint, assignedByUID string) error
 }
 
-// RBACBootstrapper assigns RBAC roles required for admin access.
-type RBACBootstrapper interface {
+// RBACManager exposes RBAC operations needed by admin endpoints.
+type RBACManager interface {
 	EnsureBootstrapSuperAdmin(ctx context.Context, uid string) error
+	ListRoles(ctx context.Context) ([]models.Role, error)
+	CreateRole(ctx context.Context, name, description string) (*models.Role, error)
+	ListPermissions(ctx context.Context) ([]models.Permission, error)
+	SetRolePermissions(ctx context.Context, roleID uint, permissionKeys []string) error
+	SetUserRoles(ctx context.Context, userUID string, roleIDs []uint, assignedByUID string) error
 }
 
 type service struct {
 	repo            Repository
 	auditLogger     *audit.AuditLogger
 	bootstrapSecret string
-	rbac            RBACBootstrapper
+	rbac            RBACManager
 }
 
 // NewService creates an admin service.
-func NewService(repo Repository, auditLogger *audit.AuditLogger, bootstrapSecret string, rbac RBACBootstrapper) Service {
+func NewService(repo Repository, auditLogger *audit.AuditLogger, bootstrapSecret string, rbac RBACManager) Service {
 	return &service{repo: repo, auditLogger: auditLogger, bootstrapSecret: bootstrapSecret, rbac: rbac}
 }
 
@@ -138,6 +151,55 @@ func (s *service) ListAdminSettings(ctx context.Context) ([]models.AdminSetting,
 	return s.repo.ListAdminSettings(ctx)
 }
 
+func (s *service) ListTenants(ctx context.Context) ([]models.Tenant, error) {
+	return s.repo.ListTenants(ctx)
+}
+
+func (s *service) CreateTenant(ctx context.Context, tenantKey, name, status, createdByUID string) (*models.Tenant, error) {
+	tenantRow, err := s.repo.CreateTenant(ctx, tenantKey, name, status)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.auditLogger != nil {
+		_ = s.auditLogger.LogAdminAction(ctx, audit.AdminAction{
+			AdminID:    createdByUID,
+			ActionType: "tenant_created",
+			TargetUser: tenantKey,
+			NewData: map[string]interface{}{
+				"tenant_key": tenantRow.TenantKey,
+				"name":       tenantRow.Name,
+				"status":     tenantRow.Status,
+			},
+		})
+	}
+
+	return tenantRow, nil
+}
+
+func (s *service) UpdateTenant(ctx context.Context, tenantKey string, name, status *string, updatedByUID string) (*models.Tenant, error) {
+	updated, err := s.repo.UpdateTenant(ctx, tenantKey, name, status)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.auditLogger != nil {
+		newData := map[string]interface{}{
+			"tenant_key": updated.TenantKey,
+			"name":       updated.Name,
+			"status":     updated.Status,
+		}
+		_ = s.auditLogger.LogAdminAction(ctx, audit.AdminAction{
+			AdminID:    updatedByUID,
+			ActionType: "tenant_updated",
+			TargetUser: tenantKey,
+			NewData:    newData,
+		})
+	}
+
+	return updated, nil
+}
+
 func (s *service) BootstrapInitialAdmin(ctx context.Context, bootstrapSecret, uid, email string) (string, error) {
 	if strings.TrimSpace(s.bootstrapSecret) == "" {
 		return "", errBootstrapSecretMissing
@@ -185,4 +247,87 @@ func (s *service) BootstrapInitialAdmin(ctx context.Context, bootstrapSecret, ui
 	}
 
 	return promotedUID, nil
+}
+
+func (s *service) ListRoles(ctx context.Context) ([]models.Role, error) {
+	if s.rbac == nil {
+		return nil, errors.New("rbac service not configured")
+	}
+	return s.rbac.ListRoles(ctx)
+}
+
+func (s *service) CreateRole(ctx context.Context, name, description, createdByUID string) (*models.Role, error) {
+	if s.rbac == nil {
+		return nil, errors.New("rbac service not configured")
+	}
+	role, err := s.rbac.CreateRole(ctx, name, description)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.auditLogger != nil {
+		_ = s.auditLogger.LogAdminAction(ctx, audit.AdminAction{
+			AdminID:    createdByUID,
+			ActionType: "rbac_role_created",
+			TargetUser: role.Name,
+			NewData: map[string]interface{}{
+				"role_id":       role.ID,
+				"tenant_key":    role.TenantKey,
+				"name":          role.Name,
+				"description":   role.Description,
+				"is_superadmin": role.IsSuperAdmin,
+			},
+		})
+	}
+
+	return role, nil
+}
+
+func (s *service) ListPermissions(ctx context.Context) ([]models.Permission, error) {
+	if s.rbac == nil {
+		return nil, errors.New("rbac service not configured")
+	}
+	return s.rbac.ListPermissions(ctx)
+}
+
+func (s *service) SetRolePermissions(ctx context.Context, roleID uint, permissionKeys []string, updatedByUID string) error {
+	if s.rbac == nil {
+		return errors.New("rbac service not configured")
+	}
+	if err := s.rbac.SetRolePermissions(ctx, roleID, permissionKeys); err != nil {
+		return err
+	}
+	if s.auditLogger != nil {
+		_ = s.auditLogger.LogAdminAction(ctx, audit.AdminAction{
+			AdminID:    updatedByUID,
+			ActionType: "rbac_role_permissions_updated",
+			TargetUser: "role",
+			NewData: map[string]interface{}{
+				"role_id":         roleID,
+				"permission_keys": permissionKeys,
+			},
+		})
+	}
+	return nil
+}
+
+func (s *service) SetUserRoles(ctx context.Context, userUID string, roleIDs []uint, assignedByUID string) error {
+	if s.rbac == nil {
+		return errors.New("rbac service not configured")
+	}
+	if err := s.rbac.SetUserRoles(ctx, userUID, roleIDs, assignedByUID); err != nil {
+		return err
+	}
+	if s.auditLogger != nil {
+		_ = s.auditLogger.LogAdminAction(ctx, audit.AdminAction{
+			AdminID:    assignedByUID,
+			ActionType: "rbac_user_roles_updated",
+			TargetUser: userUID,
+			NewData: map[string]interface{}{
+				"user_uid": userUID,
+				"role_ids": roleIDs,
+			},
+		})
+	}
+	return nil
 }

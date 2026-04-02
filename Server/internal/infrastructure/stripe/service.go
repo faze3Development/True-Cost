@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/stripe/stripe-go/v81"
+	portalsession "github.com/stripe/stripe-go/v81/billingportal/session"
 	"github.com/stripe/stripe-go/v81/checkout/session"
 )
 
@@ -146,3 +147,24 @@ func (s *Service) VerifySession(ctx context.Context, sessionID string) (*VerifyS
 		TierID:   sess.Metadata["tier_id"],
 	}, nil
 }
+
+// CreateCustomerPortalSession creates a Stripe Billing Portal session.
+func (s *Service) CreateCustomerPortalSession(ctx context.Context, customerID string, returnURL string) (string, error) {
+	if !s.IsConfigured() {
+		return "", errors.ErrInternal("stripe/unconfigured", "Payment system not configured", nil)
+	}
+
+	params := &stripe.BillingPortalSessionParams{
+		Customer:  stripe.String(customerID),
+		ReturnURL: stripe.String(returnURL),
+	}
+
+	sess, err := portalsession.New(params)
+	if err != nil {
+		s.logger.Error("Failed to create billing portal session", zap.Error(err), zap.String("customerID", customerID))
+		return "", errors.ErrInternal("stripe/portal_failed", "Failed to create billing portal session", err)
+	}
+
+	return sess.URL, nil
+}
+

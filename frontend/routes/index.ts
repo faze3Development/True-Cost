@@ -32,4 +32,7 @@ export {
   getVisibleNavLinks,
   getVisibleNavLinksForPath,
   getVisibleSidebarLinks,
+  buildPropertyUrl,
+  buildAnalyticsUrl,
+  buildReportsUrl,
 } from "./utils";

@@ -28,14 +28,14 @@ const (
 
 // APIError represents an API error
 type APIError struct {
-	Type      ErrorCategory `json:"type"`
-	Code      string        `json:"code"`
-	Message   string        `json:"message"`
-	Details   any           `json:"details,omitempty"`
-	RequestID string        `json:"request_id,omitempty"`
-	Timestamp string        `json:"timestamp"`
-	Severity  ErrorSeverity `json:"-"`
-	HttpStatus int          `json:"-"`
+	Type       ErrorCategory `json:"type"`
+	Code       string        `json:"code"`
+	Message    string        `json:"message"`
+	Details    any           `json:"details,omitempty"`
+	RequestID  string        `json:"request_id,omitempty"`
+	Timestamp  string        `json:"timestamp"`
+	Severity   ErrorSeverity `json:"-"`
+	HttpStatus int           `json:"-"`
 }
 
 func (e *APIError) Error() string {
@@ -88,6 +88,18 @@ func ErrNotFound(code, message string) *APIError {
 	}
 }
 
+func ErrConflict(code, message string, details any) *APIError {
+	return &APIError{
+		HttpStatus: http.StatusConflict,
+		Type:       ErrorCategoryConflict,
+		Code:       code,
+		Message:    message,
+		Details:    details,
+		Severity:   ErrorSeverityMedium,
+		Timestamp:  time.Now().UTC().Format(time.RFC3339),
+	}
+}
+
 func ErrTooManyRequests(code, message string) *APIError {
 	return &APIError{
 		HttpStatus: http.StatusTooManyRequests,
@@ -127,7 +139,7 @@ func GlobalErrorHandler() gin.HandlerFunc {
 				c.JSON(apiErr.HttpStatus, apiErr)
 				return
 			}
-			
+
 			// Default to internal error if not defined
 			apiErr := ErrInternal("internal_error", "An unexpected error occurred", err)
 			c.JSON(apiErr.HttpStatus, apiErr)

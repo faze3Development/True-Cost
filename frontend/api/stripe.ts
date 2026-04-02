@@ -14,3 +14,10 @@ export const createCheckoutSession = async (
   });
   return response.data;
 };
+
+export const createCustomerPortalSession = async (returnUrl: string) => {
+  const response = await apiClient.post("/stripe/portal", {
+    return_url: returnUrl,
+  });
+  return response.data;
+};

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"github.com/faze3Development/true-cost/Server/internal/infrastructure/dbctx"
 	"github.com/faze3Development/true-cost/Server/internal/infrastructure/tenant"
 	"github.com/faze3Development/true-cost/Server/internal/models"
 )
@@ -112,8 +113,9 @@ func (h *Handler) UpdateUserSettings(c *gin.Context) {
 // GetSystemSettings returns the global system-level settings.
 func (h *Handler) GetSystemSettings(c *gin.Context) {
 	tenantKey := tenant.FromContext(c.Request.Context())
+	db := dbctx.GetDB(c.Request.Context(), h.DB)
 	var settings []models.SystemSetting
-	if err := h.DB.Where("tenant_key = ?", tenantKey).Find(&settings).Error; err != nil {
+	if err := db.WithContext(c.Request.Context()).Where("tenant_key = ?", tenantKey).Find(&settings).Error; err != nil {
 		zap.L().Error("GetSystemSettings: db query failed", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch system settings"})
 		return

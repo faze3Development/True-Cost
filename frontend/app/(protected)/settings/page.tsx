@@ -9,8 +9,8 @@ import { type TopNavRuntimeConfig } from "@/routes";
 
 // DEV NOTE: Switched to centralized @/api/user so that all user profile fetch and updates
 // reuse the core Axios client with automatic interceptor-based token injection.
-import { fetchUserSettings, updateUserSettings } from "@/api/user";
-import { createCheckoutSession } from "@/api/stripe";
+import { useAuth } from "@/context/AuthContext";
+import { createCheckoutSession, createCustomerPortalSession } from "@/api/stripe";
 import { env } from "@/lib/env";
 
 const alerts = [
@@ -21,27 +21,17 @@ const alerts = [
 
 export default function SettingsPage() {
   const { mapStyle, setMapStyle } = useMapStyle();
-  const [user, setUser] = useState<any>(null);
+  const { user: authUser, dbUser, updateUserSetting } = useAuth();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const data = await fetchUserSettings();
-        setUser(data);
-        if (data.settings?.map_style) {
-          setMapStyle(data.settings.map_style as MapStyleType);
-        }
-      } catch (err) {
-        console.error("Failed to load user profile:", err);
-      }
-    };
-    fetchUser();
-  }, [setMapStyle]);
+    if (dbUser?.settings?.map_style) {
+      setMapStyle(dbUser.settings.map_style as MapStyleType);
+    }
+  }, [dbUser, setMapStyle]);
 
   const syncSetting = async (key: string, value: unknown): Promise<void> => {
     try {
-      const data = await updateUserSettings(key, value);
-      setUser(data);
+      await updateUserSetting(key, value);
     } catch (err) {
       console.warn("Failed to persist setting", err);
     }
@@ -56,16 +46,38 @@ export default function SettingsPage() {
     syncSetting("map_style", id);
   };
 
+  const handleManageBilling = async () => {
+    try {
+      const data = await createCustomerPortalSession(
+        `${window.location.origin}/settings`
+      );
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error("Portal error:", err);
+      alert("Failed to open billing portal. Please contact support.");
+    }
+  };
+
   const handleUpgrade = async () => {
     try {
+      if (dbUser?.tier_id === "enterprise") {
+        alert("You are on the top tier! To modify your enterprise agreement, please contact support.");
+        return;
+      }
+
+      const targetTier = dbUser?.tier_id === "pro" ? "enterprise" : "pro";
+      const targetPrice = dbUser?.tier_id === "pro" ? env.STRIPE_PRICE_ENTERPRISE : env.STRIPE_PRICE_PRO;
+
       const response = await createCheckoutSession(
-        "pro",
-        env.STRIPE_PRICE_PRO || "price_dummy",
+        targetTier,
+        targetPrice || "price_dummy",
         window.location.origin + "/settings?success=true",
         window.location.origin + "/settings?canceled=true"
       );
-      if (response.url) {
-        window.location.href = response.url;
+      if (response.session_url) {
+        window.location.href = response.session_url;
       }
     } catch (err) {
       console.error("Failed to start checkout:", err);
@@ -73,7 +85,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (!user) {
+  if (!dbUser || !authUser) {
     return (
       <AppLayout>
          <div className="flex bg-surface-container-lowest h-[60vh] w-full items-center justify-center">
@@ -111,8 +123,8 @@ export default function SettingsPage() {
                 <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
                   <div className="relative w-fit">
                     <img
-                      src={user.avatar_url || "https://lh3.googleusercontent.com/aida-public/AB6AXuB3yXiG99QhYJfWXwmGfUMC6FqkGVfsmjmMAUVgiVhc5W5lzRBzjb7z3PQROchXIZIiJD51qx24iDOwetoRJIuGI0BkvIt_S0fcbmHQolCl0DSTGDuv5HEmZTQXDJy6G6rjR-5xq3X2J_fQrhuM-2L1eqMbUk4qsIvxssdyXWbcPyNtHjL2dKVd6HRtSHRw3F-B_8zA1nVddX4TQzwxKtQNp_h-cmFie2Ro5lHtcTMSe_ikcKsq5t6RsJKxXj_M6VUa2eyQSgvq_Ljx"}
-                      alt={user.display_name || "Profile"}
+                      src={authUser.photoURL || dbUser.avatar_url || "https://lh3.googleusercontent.com/aida-public/AB6AXuB3yXiG99QhYJfWXwmGfUMC6FqkGVfsmjmMAUVgiVhc5W5lzRBzjb7z3PQROchXIZIiJD51qx24iDOwetoRJIuGI0BkvIt_S0fcbmHQolCl0DSTGDuv5HEmZTQXDJy6G6rjR-5xq3X2J_fQrhuM-2L1eqMbUk4qsIvxssdyXWbcPyNtHjL2dKVd6HRtSHRw3F-B_8zA1nVddX4TQzwxKtQNp_h-cmFie2Ro5lHtcTMSe_ikcKsq5t6RsJKxXj_M6VUa2eyQSgvq_Ljx"}
+                      alt={authUser.displayName || dbUser.display_name || "Profile"}
                       className="h-24 w-24 rounded-full object-cover bg-surface-container ghost-border grayscale transition duration-500 hover:grayscale-0"
                     />
                     <button
@@ -129,8 +141,8 @@ export default function SettingsPage() {
                   <div className="flex-1 space-y-6">
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div>
-                        <h3 className="text-2xl font-extrabold tracking-tight">{user.display_name || "Anonymous Analyst"}</h3>
-                        <p className="mt-1 text-sm font-bold uppercase tracking-widest text-on-tertiary-container">{user.role || "Principal Analyst"}</p>
+                        <h3 className="text-2xl font-extrabold tracking-tight">{authUser.displayName || dbUser.display_name || "Anonymous Analyst"}</h3>
+                        <p className="mt-1 text-sm font-bold uppercase tracking-widest text-on-tertiary-container">{dbUser.role || "Principal Analyst"}</p>
                       </div>
                       <span className="inline-flex items-center rounded-full bg-secondary/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-secondary">
                         Verified Identity
@@ -140,7 +152,7 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="space-y-1">
                         <span className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Email Address</span>
-                        <p className="text-sm font-medium">{user.email || "—"}</p>
+                        <p className="text-sm font-medium">{authUser.email || dbUser.email || "—"}</p>
                       </div>
                       <div className="space-y-1">
                         <span className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Contact</span>
@@ -173,7 +185,7 @@ export default function SettingsPage() {
                     <label className="relative inline-flex cursor-pointer items-center">
                       <input 
                         type="checkbox" 
-                        checked={user.settings?.two_factor_enabled || false}
+                        checked={dbUser.settings?.two_factor_enabled || false}
                         className="peer sr-only" 
                         onChange={(e) => syncSetting("two_factor_enabled", e.target.checked)}
                       />
@@ -197,7 +209,7 @@ export default function SettingsPage() {
                     <label className="relative inline-flex cursor-pointer items-center">
                       <input 
                         type="checkbox" 
-                        checked={user.settings?.email_notifications ?? true}
+                        checked={dbUser.settings?.email_notifications ?? true}
                         className="peer sr-only" 
                         onChange={(e) => syncSetting("email_notifications", e.target.checked)}
                       />
@@ -226,7 +238,7 @@ export default function SettingsPage() {
               <section className="space-y-6">
                 <h4 className="flex items-center gap-4 text-sm font-black uppercase tracking-widest text-on-surface-variant">
                   <span className="h-1 w-12 bg-secondary/20" aria-hidden />
-                  TrueCost Intelligence Export
+                  {env.APP_NAME} Intelligence Export
                 </h4>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="group flex cursor-pointer flex-col items-center rounded-lg bg-surface-container-lowest p-6 text-center transition hover:bg-primary-container hover:text-on-primary">
@@ -263,16 +275,16 @@ export default function SettingsPage() {
                       key={style.id}
                       onClick={() => handleMapStyleChange(style.id as MapStyleType)}
                       className={`group cursor-pointer rounded-lg border-2 p-4 transition-all ${
-                        (user.settings?.map_style || "dark-matter") === style.id 
+                        (dbUser.settings?.map_style || "dark-matter") === style.id 
                           ? "border-secondary bg-secondary/10" 
                           : "border-transparent bg-surface-container-lowest hover:border-outline/50"
                       }`}
                     >
                       <div className="mb-2 flex items-center justify-between">
-                        <p className={`font-bold ${(user.settings?.map_style || "dark-matter") === style.id ? "text-secondary" : "text-on-surface"}`}>
+                        <p className={`font-bold ${(dbUser.settings?.map_style || "dark-matter") === style.id ? "text-secondary" : "text-on-surface"}`}>
                           {style.label}
                         </p>
-                        <span className={`material-symbols-outlined text-xl ${(user.settings?.map_style || "dark-matter") === style.id ? "text-secondary" : "text-on-surface-variant opacity-0 transition group-hover:opacity-50"}`}>
+                        <span className={`material-symbols-outlined text-xl ${(dbUser.settings?.map_style || "dark-matter") === style.id ? "text-secondary" : "text-on-surface-variant opacity-0 transition group-hover:opacity-50"}`}>
                           check_circle
                         </span>
                       </div>
@@ -283,7 +295,7 @@ export default function SettingsPage() {
               </section>
 
               <TopNavConfigEditor
-                savedConfig={user.settings?.top_nav_config}
+                savedConfig={dbUser.settings?.top_nav_config}
                 onSaveConfig={handleTopNavConfigSave}
               />
             </div>
@@ -292,9 +304,9 @@ export default function SettingsPage() {
               <section className="relative overflow-hidden bg-primary-container p-8 text-on-primary shadow-ambient">
                 <div className="relative z-10 space-y-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-on-tertiary-container">Current Subscription</p>
-                  <h3 className="text-3xl font-extrabold tracking-tighter capitalize">{user.tier_id || "free"} Tier</h3>
+                  <h3 className="text-3xl font-extrabold tracking-tighter capitalize">{dbUser.tier_id || "free"} Tier</h3>
                   <p className="text-sm text-on-primary/90">
-                    {user.tier_id === "free" ? "Limited Local Market Access" : "Unlimited Portfolio Analysis & API Access"}
+                    {dbUser.tier_id === "free" ? "Limited Local Market Access" : "Unlimited Portfolio Analysis & API Access"}
                   </p>
 
                   <div className="space-y-4 rounded bg-white/5 p-4">
@@ -305,7 +317,7 @@ export default function SettingsPage() {
                     <div className="flex justify-between text-xs font-medium">
                       <span className="opacity-80">Annual Committed Total</span>
                       <span className="tabular-nums font-bold text-secondary">
-                          {user.tier_id === "free" ? "$0.00" : "$12,400.00"}
+                          {dbUser.tier_id === "free" ? "$0.00" : "$12,400.00"}
                       </span>
                     </div>
                   </div>
@@ -313,12 +325,12 @@ export default function SettingsPage() {
                   <button 
                     className="flex w-full items-center justify-center gap-2 rounded bg-white px-4 py-4 text-xs font-black uppercase tracking-widest text-primary-container transition hover:bg-secondary-container hover:text-on-secondary" 
                     type="button"
-                    onClick={user.tier_id === "free" ? handleUpgrade : () => alert("To manage your billing, please visit the Stripe Customer Portal.")}
+                    onClick={dbUser.tier_id === "enterprise" ? handleManageBilling : handleUpgrade}
                   >
                     <span className="material-symbols-outlined text-sm" aria-hidden>
-                      {user.tier_id === "free" ? "upgrade" : "download"}
+                      {dbUser.tier_id === "enterprise" ? "manage_accounts" : "upgrade"}
                     </span>
-                    {user.tier_id === "free" ? "Upgrade Institution" : "Manage Subscription"}
+                    {dbUser.tier_id === "enterprise" ? "Manage Subscription" : "Upgrade Plan"}
                   </button>
                 </div>
                 <div className="absolute -bottom-12 -right-12 h-48 w-48 rounded-full bg-secondary/15 blur-3xl" aria-hidden />

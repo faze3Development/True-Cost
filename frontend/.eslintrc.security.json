@@ -1,0 +1,26 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    "no-script-url": "error",
+    "react/no-danger": "error",
+    "react/no-danger-with-children": "error",
+    "react/jsx-no-script-url": "error",
+    "react/jsx-no-target-blank": ["error", { "allowReferrer": false }],
+    "no-restricted-properties": [
+      "error",
+      {
+        "object": "document",
+        "property": "write",
+        "message": "Use React rendering instead of document.write"
+      },
+      {
+        "object": "window",
+        "property": "eval",
+        "message": "window.eval is forbidden for security reasons"
+      }
+    ]
+  }
+}
