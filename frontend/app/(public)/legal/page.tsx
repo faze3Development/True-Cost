@@ -96,9 +96,7 @@ function LegalCenterContent() {
           {activeTab === "overview" && <OverviewContent setActiveTab={handleTabChange} />}
           {activeTab === "privacy" && <PrivacyPolicyContent />}
           {activeTab === "terms" && <TermsOfServiceContent />}
-          {activeTab === "compliance" && (
-            <div className="max-w-4xl mx-auto text-center py-20 text-on-surface-variant font-medium">Regulatory Disclosures content coming soon...</div>
-          )}
+          {activeTab === "compliance" && <ComplianceContent />}
         </main>
       </div>
     </div>
@@ -260,6 +258,43 @@ function OverviewContent({ setActiveTab }: { setActiveTab: (tab: Tab) => void })
             </button>
           </div>
         </div>
+      </section>
+    </div>
+  );
+}
+
+function ComplianceContent() {
+  const requiredDisclaimers = [
+    "All information provided is deemed reliable but is not guaranteed. Prices and estimated True Costs are subject to change at any point and should be independently reviewed and verified for accuracy",
+    "Information is provided exclusively for the consumer's personal, non-commercial use, and may not be used for any purpose other than to identify prospective properties",
+    "This platform provides algorithmic estimates of market value and true cost and does not provide binding financial, legal, or real estate advice.",
+  ];
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8">
+      <section className="rounded-xl bg-surface-container-lowest p-8 border border-outline-variant/20">
+        <h2 className="text-2xl font-black tracking-tight text-on-surface">Regulatory Disclosures</h2>
+        <p className="mt-3 text-sm text-on-surface-variant">
+          True Cost displays a complete monthly fee-inclusive estimate to comply with federal fee transparency expectations.
+        </p>
+      </section>
+
+      <section className="rounded-xl bg-surface-container-lowest p-8 border border-outline-variant/20">
+        <h3 className="text-sm font-bold uppercase tracking-[0.14em] text-on-surface-variant">Required Consumer Notices</h3>
+        <ul className="mt-4 space-y-3">
+          {requiredDisclaimers.map((text) => (
+            <li key={text} className="rounded-lg bg-surface-container-low p-4 text-sm leading-relaxed text-on-surface">
+              {text}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="rounded-xl bg-surface-container-lowest p-8 border border-outline-variant/20">
+        <h3 className="text-sm font-bold uppercase tracking-[0.14em] text-on-surface-variant">Fee Transparency</h3>
+        <p className="mt-3 text-sm text-on-surface">
+          Property outputs must include total mandatory monthly fees in the True Cost estimate and identify that the estimate is algorithmic.
+        </p>
       </section>
     </div>
   );

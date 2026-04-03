@@ -87,6 +87,7 @@ func NewRouter(db *gorm.DB, cfg *config.Config, authClient *auth.Client) *gin.En
 			// business Validation Example (Ensuring parameterized routes aren't empty)
 			protected.GET("/properties/:id", businessValidation.EnsureResourceOwnership("id"), h.GetProperty)
 			protected.GET("/properties/:id/units", businessValidation.EnsureResourceOwnership("id"), h.ListUnits)
+			protected.GET("/properties/:id/deal-analysis", businessValidation.EnsureResourceOwnership("id"), h.GetPropertyDealAnalysis)
 			protected.GET("/units/:id/history", businessValidation.EnsureResourceOwnership("id"), h.GetUnitHistory)
 
 			// User Protected Routes
