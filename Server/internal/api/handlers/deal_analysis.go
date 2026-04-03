@@ -9,20 +9,21 @@ import (
 )
 
 const (
-	agentNodeDataIngestion   = "data_ingestion"
-	agentNodeFinancial       = "financial_analyst"
-	agentNodeSpatial         = "spatial_economist"
-	agentNodeEconometric     = "econometrician"
-	agentNodeMarketTiming    = "market_timing"
-	agentNodeOrchestrator    = "senior_orchestrator"
-	estimateTypeAlgorithmic  = "algorithmic_estimate"
-	maxDealScoreCrossValDiff = 15.0
+	agentNodeDataIngestion      = "data_ingestion"
+	agentNodeFinancial          = "financial_analyst"
+	agentNodeSpatial            = "spatial_economist"
+	agentNodeEconometric        = "econometrician"
+	agentNodeMarketTiming       = "market_timing"
+	agentNodeOrchestrator       = "senior_orchestrator"
+	estimateTypeAlgorithmic     = "algorithmic_estimate"
+	maxDealScoreCrossValDiff    = 15.0
+	marketTimingConcessionBoost = 1.0
 )
 
 var requiredLegalDisclaimers = []string{
 	"All information provided is deemed reliable but is not guaranteed. Prices and estimated True Costs are subject to change at any point and should be independently reviewed and verified for accuracy",
 	"Information is provided exclusively for the consumer's personal, non-commercial use, and may not be used for any purpose other than to identify prospective properties",
-	"True Cost and Deal Score outputs are algorithmic estimates of market value and true cost, and are not binding financial, legal, or real estate advice.",
+	"True Cost and Deal Score outputs are algorithmic estimates and are not binding financial, legal, or real estate advice.",
 }
 
 type agentStateEdge struct {
@@ -144,7 +145,7 @@ func econometricNodeScore(record models.PriceRecord, totalMandatoryFees float64)
 	if record.AdvertisedRent == 0 {
 		return 0
 	}
-	return ((record.AdvertisedRent - record.EffectiveRent) / (record.AdvertisedRent + totalMandatoryFees)) * 100
+	return ((record.AdvertisedRent - record.EffectiveRent) / record.AdvertisedRent) * 100
 }
 
 func marketTimingNodeScore(concessionText string) float64 {
@@ -153,7 +154,7 @@ func marketTimingNodeScore(concessionText string) float64 {
 		return 0
 	}
 	if strings.Contains(normalized, "free") || strings.Contains(normalized, "concession") {
-		return 1
+		return marketTimingConcessionBoost
 	}
 	return 0
 }

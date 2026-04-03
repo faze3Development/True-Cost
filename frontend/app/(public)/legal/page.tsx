@@ -267,7 +267,7 @@ function ComplianceContent() {
   const requiredDisclaimers = [
     "All information provided is deemed reliable but is not guaranteed. Prices and estimated True Costs are subject to change at any point and should be independently reviewed and verified for accuracy",
     "Information is provided exclusively for the consumer's personal, non-commercial use, and may not be used for any purpose other than to identify prospective properties",
-    "This platform provides algorithmic estimates of market value and true cost and does not provide binding financial, legal, or real estate advice.",
+    "This platform provides algorithmic estimates and does not provide binding financial, legal, or real estate advice.",
   ];
 
   return (

@@ -113,7 +113,7 @@ func (h *Handler) ListProperties(c *gin.Context) {
 			EstimateType:       deal.EstimateType,
 			LegalDisclaimers:   deal.LegalDisclaimers,
 			ImageURL:           p.ImageURL,
-			IsVerified:         p.FeeStructure.ID != "" && deal.Guardrails.OutputValidated,
+			IsVerified:         p.FeeStructure.ID != "",
 		})
 	}
 
