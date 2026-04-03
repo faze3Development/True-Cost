@@ -1,19 +1,21 @@
 "use client";
 
 import clsx from "clsx";
+import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { buildPropertyUrl } from "@/routes";
 
 type Insight = "positive" | "neutral";
 
 export interface PropertyCardProps {
-  id: number | string;
+  id: string;
   title: string;
   neighborhood: string;
   city: string;
   advertisedRent: number;
   trueCost: number;
-  imageUrl: string;
+  imageUrl?: string | null;
   badgeLabel?: string;
   insight?: Insight;
   isBookmarked?: boolean;
@@ -40,6 +42,14 @@ export default function PropertyCard({
   onBookmark,
 }: PropertyCardProps) {
   const accent = insight === "positive" ? "from-secondary to-secondary/80" : "from-tertiary to-tertiary/70";
+  const [imageFailed, setImageFailed] = useState(false);
+  const proxyUrl = imageUrl
+    ? `https://wsrv.nl/?url=${encodeURIComponent(imageUrl)}&w=800&h=480&fit=cover`
+    : null;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [proxyUrl]);
 
   return (
     <Link href={buildPropertyUrl(id)} className="block">
@@ -51,11 +61,26 @@ export default function PropertyCard({
       >
         <div className={clsx("h-1 w-full bg-gradient-to-r", accent)} />
         <div className="relative h-48 overflow-hidden">
-          <img
-            src={imageUrl}
-            alt={title}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+          {proxyUrl && !imageFailed ? (
+            <Image
+              src={proxyUrl}
+              alt={title}
+              fill
+              unoptimized
+              sizes="(max-width: 768px) 100vw, 640px"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-surface-container" aria-hidden>
+              <div className="absolute inset-0 bg-gradient-to-br from-surface-container-high to-surface-container-low" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="material-symbols-outlined text-4xl text-on-surface-variant/60">
+                  apartment
+                </span>
+              </div>
+            </div>
+          )}
           {badgeLabel ? (
             <div className="absolute top-3 right-3 rounded-lg bg-primary text-on-primary px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] shadow-ambient">
               {badgeLabel}

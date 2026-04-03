@@ -1,4 +1,4 @@
-import Sidebar from "@/components/Sidebar";
+import AppLayout from "@/components/AppLayout";
 import MacroTrendsGrid from "@/components/reports/MacroTrendsGrid";
 import SavedReportCard from "@/components/reports/SavedReportCard";
 import DataExportBanner from "@/components/reports/DataExportBanner";
@@ -67,68 +67,29 @@ const SAVED_REPORTS: SavedReportCardProps[] = [
 
 export default function AnalyticsPage() {
   return (
-    <div className="min-h-screen bg-surface text-on-surface">
-      {/* ─── Side Navigation ─── */}
-      <Sidebar />
-
-      {/* ─── Top Header ─── */}
-      <header className="fixed left-64 right-0 top-0 z-50 flex items-center justify-between bg-surface-container-low/80 px-8 py-4 backdrop-blur-xl">
-        <div className="flex items-center gap-8">
-          <span className="text-xl font-bold tracking-tighter text-on-surface">
-            TrueMetric Finance
-          </span>
-          <nav className="hidden items-center gap-6 md:flex" aria-label="Top navigation">
-            {headerTabs.map((tab) => (
-              <a
-                key={tab.label}
-                href={tab.href}
-                className={
-                  tab.active
-                    ? "border-b-2 border-[#10B981] pb-1 text-sm font-semibold tracking-tight text-[#10B981]"
-                    : "text-sm tracking-tight text-on-surface-variant transition-colors hover:text-on-surface"
-                }
-              >
-                {tab.label}
-              </a>
-            ))}
-          </nav>
+    <AppLayout>
+      <div className="min-h-screen px-6 py-12 md:px-12 w-full max-w-7xl mx-auto">
+        {/* Header Tabs */}
+        <div className="mb-12 border-b border-outline-variant/20 flex gap-6">
+          {headerTabs.map((tab) => (
+            <a
+              key={tab.label}
+              href={tab.href}
+              className={
+                tab.active
+                  ? "border-b-2 border-primary pb-2 text-sm font-black tracking-tight text-primary transition-all"
+                  : "pb-2 text-sm font-semibold tracking-tight text-on-surface-variant transition-all hover:text-on-surface"
+              }
+            >
+              {tab.label}
+            </a>
+          ))}
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="rounded-lg p-2 text-on-surface-variant transition-all hover:bg-surface-container active:scale-95"
-            aria-label="Notifications"
-          >
-            <span className="material-symbols-outlined text-xl" aria-hidden="true">
-              notifications
-            </span>
-          </button>
-          <button
-            type="button"
-            className="rounded-lg p-2 text-on-surface-variant transition-all hover:bg-surface-container active:scale-95"
-            aria-label="Settings"
-          >
-            <span className="material-symbols-outlined text-xl" aria-hidden="true">
-              settings
-            </span>
-          </button>
-          <div className="h-8 w-8 overflow-hidden rounded-full bg-surface-container-high">
-            <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaYwCZ3W628gxk2Xav1n1XpQeFQ7klGFBHtFAbSELHRrUOJBplZB9T3plna_j2caxHM1_aQA2ExLz7zyOWnO6qoJFHNANE8wEj2tp-dMeLRbslf5FJFi6pSOuUt4n3qzltvKJ-UlWThHmGIv3Hr8A7KiR0L2FKT58zl5x4_kjI2YWP3P4qTOO6obZyZ_CVbxZSVHROVBpU8ffu7bEQzyPBR2DY1TU7OK3X2WXKTbq7jYzlGb2oj8TxD-ORp957Wv02vgA1gu1eFP6r"
-              alt="User profile"
-              className="h-full w-full object-cover"
-            />
-          </div>
-        </div>
-      </header>
-
-      {/* ─── Main Content ─── */}
-      <main className="ml-64 min-h-screen flex-1 px-12 pb-20 pt-24">
         {/* Hero Header */}
         <header className="mb-16">
-          <h2 className="mb-3 text-5xl font-black tracking-tight text-[#0A192F]">
-            Portfolio Analytics &amp; Market Reports
+          <h2 className="mb-3 text-4xl lg:text-5xl font-black tracking-tight text-on-surface">
+            Portfolio Analytics & Market Reports
           </h2>
           <p className="max-w-2xl text-lg font-medium text-on-surface-variant">
             Institutional-grade rental data and historical volatility analysis.
@@ -158,7 +119,7 @@ export default function AnalyticsPage() {
 
         {/* System Footer */}
         <SystemStatusBar />
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

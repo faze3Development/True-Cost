@@ -65,11 +65,11 @@ export default function AdminManagementPage() {
   const [newRoleName, setNewRoleName] = useState("");
   const [newRoleDescription, setNewRoleDescription] = useState("");
 
-  const [selectedRoleId, setSelectedRoleId] = useState<number | "">("");
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
   const [selectedPermissionKeys, setSelectedPermissionKeys] = useState<string[]>([]);
 
   const [targetUserUID, setTargetUserUID] = useState("");
-  const [selectedUserRoleIds, setSelectedUserRoleIds] = useState<number[]>([]);
+  const [selectedUserRoleIds, setSelectedUserRoleIds] = useState<string[]>([]);
 
   const sortedPermissions = useMemo(() => {
     return [...permissions].sort((a, b) => a.key.localeCompare(b.key));
@@ -150,7 +150,7 @@ export default function AdminManagementPage() {
 
     setErrorMessage("");
     try {
-      await setRolePermissionsMutation.mutateAsync({ roleID: selectedRoleId as number, payload: { permission_keys: selectedPermissionKeys } });
+      await setRolePermissionsMutation.mutateAsync({ roleID: selectedRoleId, payload: { permission_keys: selectedPermissionKeys } });
       setSelectedPermissionKeys([]);
       setSelectedRoleId("");
     } catch (err) {
@@ -373,7 +373,7 @@ export default function AdminManagementPage() {
                     ) : (
                       <ul className="space-y-2">
                         {roles.map((role) => (
-                          <li key={role.ID} className="bg-white p-4 shadow-ambient">
+                          <li key={role.id} className="bg-white p-4 shadow-ambient">
                             <div className="flex items-start justify-between gap-4">
                               <div>
                                 <p className="text-sm font-extrabold tracking-tight text-on-surface">{role.name}</p>
@@ -382,7 +382,7 @@ export default function AdminManagementPage() {
                                 ) : null}
                               </div>
                               <span className="rounded-full bg-surface-container-lowest px-3 py-1 text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-                                ID: {role.ID}
+                                ID: {role.id}
                               </span>
                             </div>
                           </li>
@@ -456,13 +456,13 @@ export default function AdminManagementPage() {
                       <span className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Role</span>
                       <select
                         value={selectedRoleId}
-                        onChange={(e) => setSelectedRoleId(e.target.value ? Number(e.target.value) : "")}
+                        onChange={(e) => setSelectedRoleId(e.target.value)}
                         className="mt-1 w-full bg-white px-3 py-2 text-sm shadow-ambient focus:outline-none"
                       >
                         <option value="">Select role…</option>
                         {roles.map((role) => (
-                          <option key={role.ID} value={role.ID}>
-                            {role.name} (ID {role.ID})
+                          <option key={role.id} value={role.id}>
+                            {role.name} (ID {role.id})
                           </option>
                         ))}
                       </select>
@@ -534,22 +534,22 @@ export default function AdminManagementPage() {
                       ) : (
                         <ul className="space-y-2">
                           {roles.map((role) => {
-                            const checked = selectedUserRoleIds.includes(role.ID);
+                            const checked = selectedUserRoleIds.includes(role.id);
                             return (
-                              <li key={role.ID} className="flex items-center gap-3">
+                              <li key={role.id} className="flex items-center gap-3">
                                 <input
                                   type="checkbox"
                                   checked={checked}
                                   onChange={(e) => {
                                     setSelectedUserRoleIds((prev) =>
                                       e.target.checked
-                                        ? [...prev, role.ID]
-                                        : prev.filter((id) => id !== role.ID)
+                                        ? [...prev, role.id]
+                                        : prev.filter((id) => id !== role.id)
                                     );
                                   }}
                                 />
                                 <span className="text-sm font-semibold text-on-surface">{role.name}</span>
-                                <span className="text-xs text-on-surface-variant">(ID {role.ID})</span>
+                                <span className="text-xs text-on-surface-variant">(ID {role.id})</span>
                               </li>
                             );
                           })}

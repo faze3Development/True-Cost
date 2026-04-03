@@ -7,8 +7,8 @@ ENV_FILE ?= Server/.env
 help:           ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
-dev:            ## Start local dev stack (Postgres + Redis), then run API locally via air
-	$(DC) up -d --wait postgres redis
+dev:            ## Start local dev stack (Postgres + Redis + Directus), then run API locally via air
+	$(DC) up -d --wait postgres redis directus
 	$(MAKE) run-backend-dev
 
 run-backend-dev: ## Run API locally with air, loading Server/.env

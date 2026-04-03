@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/context/ToastContext";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/context/AuthContext";
 import { validatePassword, validateEmail, validateFullName } from "@/utils/validation";
@@ -23,6 +24,7 @@ export default function RequestAccessPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const { signInWithGoogle, signUp } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const toast = useToast();
   const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -56,9 +58,10 @@ export default function RequestAccessPage() {
       await signUp(formData.email, formData.password, formData.fullName);
       // AuthContext handles redirect
       // Optionally sync role, firmName, useCase to Firestore backend here
-    } catch (error) {
-      console.error("Failed to create account:", error);
-      alert("Failed to create account. Please try again.");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Registration Failed", err?.response?.data?.error || "Failed to create account. Please try again.");
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -68,9 +71,10 @@ export default function RequestAccessPage() {
     try {
       await signInWithGoogle();
       // AuthContext will handle redirect
-    } catch (error) {
-      console.error("Google sign up failed:", error);
-      alert("Google sign up failed. Please try again.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Google Sign Up Failed", "Google sign up failed. Please try again.");
+    } finally {
       setIsSubmitting(false);
     }
   };

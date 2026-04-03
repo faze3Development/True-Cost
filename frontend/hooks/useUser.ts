@@ -40,7 +40,7 @@ export function useAddSavedProperty() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (propertyId: number | string) => addSavedProperty(propertyId),
+    mutationFn: (propertyId: string) => addSavedProperty(propertyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: USER_KEYS.all });
     },
@@ -51,7 +51,7 @@ export function useRemoveSavedProperty() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (propertyId: number | string) => removeSavedProperty(propertyId),
+    mutationFn: (propertyId: string) => removeSavedProperty(propertyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: USER_KEYS.all });
     },

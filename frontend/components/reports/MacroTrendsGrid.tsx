@@ -20,8 +20,8 @@ const TREND_CARDS: TrendCardData[] = [
     change: "+2.4%",
     trend: "up",
     icon: "trending_up",
-    strokeColor: "#10B981",
-    fillColor: "rgba(16, 185, 129, 0.08)",
+    strokeColor: "rgb(var(--secondary))",
+    fillColor: "rgb(var(--secondary) / 0.08)",
     changeColor: "text-secondary",
     sparklinePath: "M0 30 L10 32 L20 28 L30 35 L40 22 L50 25 L60 15 L70 18 L80 10 L90 12 L100 5",
     sparklineFillPath:
@@ -33,8 +33,8 @@ const TREND_CARDS: TrendCardData[] = [
     change: "Stable",
     trend: "flat",
     icon: "horizontal_rule",
-    strokeColor: "#76849f",
-    fillColor: "rgba(118, 132, 159, 0.08)",
+    strokeColor: "rgb(var(--on-surface-variant))",
+    fillColor: "rgb(var(--on-surface-variant) / 0.08)",
     changeColor: "text-on-surface-variant",
     sparklinePath: "M0 25 L20 26 L40 24 L60 25 L80 24 L100 25",
     sparklineFillPath: "M0 40 L0 25 L20 26 L40 24 L60 25 L80 24 L100 25 L100 40 Z",
@@ -45,8 +45,8 @@ const TREND_CARDS: TrendCardData[] = [
     change: "-1.2%",
     trend: "down",
     icon: "trending_down",
-    strokeColor: "#ba1a1a",
-    fillColor: "rgba(186, 26, 26, 0.08)",
+    strokeColor: "rgb(var(--error))",
+    fillColor: "rgb(var(--error) / 0.08)",
     changeColor: "text-error",
     sparklinePath: "M0 5 L20 12 L40 8 L60 18 L80 15 L100 22",
     sparklineFillPath: "M0 40 L0 5 L20 12 L40 8 L60 18 L80 15 L100 22 L100 40 Z",
@@ -60,7 +60,7 @@ function SparklinePlaceholder({
   sparklineFillPath,
 }: Pick<TrendCardData, "strokeColor" | "fillColor" | "sparklinePath" | "sparklineFillPath">) {
   return (
-    <div className="h-28 mt-auto relative overflow-hidden bg-white/50 rounded-xl">
+    <div className="h-28 mt-auto relative overflow-hidden bg-surface-bright rounded-xl">
       <svg
         className="w-full h-full"
         viewBox="0 0 100 40"

@@ -6,7 +6,7 @@ services:
     container_name: truecost_postgres
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-truecost}
     ports:
       - "5432:5432"
@@ -65,6 +65,35 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_ADDR: redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  directus:
+    image: directus/directus:latest
+    container_name: truecost_directus
+    ports:
+      - "8055:8055"
+    environment:
+      KEY: "truecost-key"
+      SECRET: "truecost-secret"
+      ADMIN_EMAIL: "admin@example.com"
+      ADMIN_PASSWORD: "admin"
+      DB_CLIENT: "pg"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_DATABASE: "truecost"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
+      DB_SEARCH_PATH: "public,logs"
+      CACHE_ENABLED: "true"
+      CACHE_STORE: "redis"
+      CACHE_REDIS: "redis://redis:6379"
+      REDIS: "redis://redis:6379"
+      CORS_ENABLED: "true"
+      CORS_ORIGIN: "*"
     depends_on:
       postgres:
         condition: service_healthy

@@ -5,6 +5,60 @@
 @layer base {
   :root {
     color-scheme: light;
+    --primary: 10 25 47;
+    --primary-container: 13 28 50;
+    --secondary: 16 185 129;
+    --secondary-container: 228 255 244;
+    --tertiary: 74 85 104;
+    --tertiary-container: 233 238 245;
+    --error: 239 68 68;
+    --on-primary: 255 255 255;
+    --on-secondary: 10 25 47;
+    --on-tertiary: 255 255 255;
+    --on-error: 255 255 255;
+    --on-surface: 20 29 35;
+    --on-surface-variant: 74 85 104;
+    --surface: 248 250 252;
+    --surface-container-low: 236 245 254;
+    --surface-container: 230 237 247;
+    --surface-container-high: 224 233 242;
+    --surface-container-highest: 216 226 236;
+    --surface-container-lowest: 255 255 255;
+    --surface-bright: 246 250 255;
+    --outline: 74 85 104;
+    --outline-variant: 74 85 104;
+    --inverse-surface: 41 49 56;
+    --inverse-on-surface: 233 242 251;
+    --on-tertiary-container: 43 60 79;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --primary: 96 165 250; /* A softer light blue for primary text/links if needed, or white. We'll use a light accent here for primary elements. */
+    --primary-container: 30 41 59;
+    --secondary: 16 185 129;
+    --secondary-container: 6 78 59;
+    --tertiary: 148 163 184;
+    --tertiary-container: 51 65 85;
+    --error: 248 113 113;
+    --on-primary: 10 25 47;
+    --on-secondary: 255 255 255;    
+    --on-tertiary: 15 23 42;
+    --on-error: 0 0 0;
+    --on-surface: 226 232 240;
+    --on-surface-variant: 148 163 184;
+    --surface: 15 23 42;
+    --surface-container-low: 30 41 59;
+    --surface-container: 30 41 59;
+    --surface-container-high: 51 65 85;
+    --surface-container-highest: 71 85 105;
+    --surface-container-lowest: 2 6 23;
+    --surface-bright: 30 41 59;
+    --outline: 148 163 184;
+    --outline-variant: 148 163 184;
+    --inverse-surface: 241 245 249;
+    --inverse-on-surface: 15 23 42;
+    --on-tertiary-container: 255 255 255;
   }
 
   body {

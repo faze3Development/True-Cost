@@ -5,6 +5,7 @@ import AppLayout from "@/components/AppLayout";
 import ListingsFeed from "@/components/ListingsFeed";
 import MarketMap from "@/components/MarketMap";
 import { useProperties } from "@/hooks/useProperties";
+import { useDebounce } from "@/hooks/useDebounce";
 import type { Property } from "@/types/property";
 import { env } from "@/lib/env";
 
@@ -16,7 +17,8 @@ const filters = [
 
 export default function Page() {
   const [mapBounds, setMapBounds] = useState("-74.1,40.7,-73.9,40.8");
-  const { data, isFetching, isError } = useProperties(mapBounds, { enabled: Boolean(mapBounds) });
+  const debouncedMapBounds = useDebounce(mapBounds, 500);
+  const { data, isFetching, isError } = useProperties(debouncedMapBounds, { enabled: Boolean(debouncedMapBounds) });
 
   const properties = useMemo(() => data ?? [], [data]);
 

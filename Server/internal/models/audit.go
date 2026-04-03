@@ -2,13 +2,11 @@ package models
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 // SecurityEvent represents a security-relevant event stored in the database.
 type SecurityEvent struct {
-	gorm.Model
+	BaseModel
 	TenantKey    string    `gorm:"not null;default:'default';index" json:"tenant_key"`
 	EventType     string    `gorm:"not null;index" json:"event_type"`
 	Severity      string    `gorm:"not null"       json:"severity"`

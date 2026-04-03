@@ -13,8 +13,8 @@ type Service interface {
 	ListRoles(ctx context.Context) ([]models.Role, error)
 	CreateRole(ctx context.Context, name, description string) (*models.Role, error)
 	ListPermissions(ctx context.Context) ([]models.Permission, error)
-	SetRolePermissions(ctx context.Context, roleID uint, permissionKeys []string) error
-	SetUserRoles(ctx context.Context, userUID string, roleIDs []uint, assignedByUID string) error
+	SetRolePermissions(ctx context.Context, roleID string, permissionKeys []string) error
+	SetUserRoles(ctx context.Context, userUID string, roleIDs []string, assignedByUID string) error
 }
 
 type service struct {
@@ -45,10 +45,10 @@ func (s *service) ListPermissions(ctx context.Context) ([]models.Permission, err
 	return s.repo.ListPermissions(ctx)
 }
 
-func (s *service) SetRolePermissions(ctx context.Context, roleID uint, permissionKeys []string) error {
+func (s *service) SetRolePermissions(ctx context.Context, roleID string, permissionKeys []string) error {
 	return s.repo.SetRolePermissions(ctx, roleID, permissionKeys)
 }
 
-func (s *service) SetUserRoles(ctx context.Context, userUID string, roleIDs []uint, assignedByUID string) error {
+func (s *service) SetUserRoles(ctx context.Context, userUID string, roleIDs []string, assignedByUID string) error {
 	return s.repo.SetUserRoles(ctx, userUID, roleIDs, assignedByUID)
 }

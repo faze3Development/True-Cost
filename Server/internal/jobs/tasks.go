@@ -20,13 +20,13 @@ const (
 
 // ScrapePropertyPayload carries the data needed to scrape a single property.
 type ScrapePropertyPayload struct {
-	PropertyID uint   `json:"property_id"`
+	PropertyID string `json:"property_id"`
 	URL        string `json:"url"`
 }
 
 // NewScrapePropertyTask creates a new Asynq task for scraping a property.
 // Tasks are configured with the specified number of retries and timeout.
-func NewScrapePropertyTask(propertyID uint, url string, delay time.Duration, maxRetries int, taskTimeout time.Duration) (*asynq.Task, error) {
+func NewScrapePropertyTask(propertyID string, url string, delay time.Duration, maxRetries int, taskTimeout time.Duration) (*asynq.Task, error) {
 	payload, err := json.Marshal(ScrapePropertyPayload{
 		PropertyID: propertyID,
 		URL:        url,

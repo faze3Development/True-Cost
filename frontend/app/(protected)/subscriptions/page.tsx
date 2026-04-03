@@ -4,10 +4,11 @@ import React, { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { loadStripe } from "@stripe/stripe-js";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 
-// DEV NOTE: Switched to centralized @/api/stripe to handle checkouts, allowing us to keep header 
+// DEV NOTE: Switched to centralized hooks to handle checkouts, allowing us to keep header 
 // and config mapping entirely out of components that just need simple API methods.
-import { createCheckoutSession, createCustomerPortalSession } from "@/api/stripe";
+import { useCreateCheckoutSession, useCreateCustomerPortalSession } from "@/hooks/useSession";
 import { env } from "@/lib/env";
 import clsx from "clsx";
 
@@ -17,12 +18,14 @@ const stripePromise = loadStripe(env.STRIPE_PUBLISHABLE_KEY);
 export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(false);
   const { dbUser, profileLoading } = useAuth();
+  const createCheckoutMutation = useCreateCheckoutSession();
+  const createPortalMutation = useCreateCustomerPortalSession();
+  const toast = useToast();
 
   const handleUpgrade = async () => {
     try {
       if (dbUser?.tier_id === "enterprise") {
-        // Just manage plan/contact support
-        alert("You are on the top tier! To modify your enterprise agreement, please contact support.");
+        toast.info("Institutional Tier", "You are on the top tier! To modify your enterprise agreement, please contact support.");
         return;
       }
       
@@ -30,12 +33,12 @@ export default function SubscriptionsPage() {
       const targetTier = dbUser?.tier_id === "pro" ? "enterprise" : "pro";
       const targetPrice = dbUser?.tier_id === "pro" ? env.STRIPE_PRICE_ENTERPRISE : env.STRIPE_PRICE_PRO;
       
-      const data = await createCheckoutSession(
-        targetTier,
-        targetPrice,
-        `${window.location.origin}/subscriptions?success=true`,
-        `${window.location.origin}/subscriptions?canceled=true`
-      );
+      const data = await createCheckoutMutation.mutateAsync({
+        tierId: targetTier,
+        priceId: targetPrice,
+        successUrl: `${window.location.origin}/subscriptions?success=true`,
+        cancelUrl: `${window.location.origin}/subscriptions?canceled=true`
+      });
       
       const { session_url } = data;
       if (session_url) {
@@ -43,7 +46,7 @@ export default function SubscriptionsPage() {
       }
     } catch (error) {
       console.error("Subscription error:", error);
-      alert("Failed to start checkout. Please try again.");
+      toast.error("Checkout Failed", "Failed to start checkout. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -52,7 +55,7 @@ export default function SubscriptionsPage() {
   const handleManageBilling = async () => {
     try {
       setLoading(true);
-      const data = await createCustomerPortalSession(
+      const data = await createPortalMutation.mutateAsync(
         `${window.location.origin}/subscriptions`
       );
       
@@ -62,7 +65,7 @@ export default function SubscriptionsPage() {
       }
     } catch (error) {
       console.error("Portal error:", error);
-      alert("Failed to open billing portal. Please contact support.");
+      toast.error("Portal Unavailable", "Failed to open billing portal. Please contact support.");
     } finally {
       setLoading(false);
     }

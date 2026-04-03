@@ -1,6 +1,6 @@
 export interface ApiUnitResponse {
-  id: number | string;
-  property_id: number;
+  id: string;
+  property_id: string;
   unit_number: string;
   floorplan_name: string;
   bedrooms: number;
@@ -9,8 +9,8 @@ export interface ApiUnitResponse {
 }
 
 export interface ApiUnit {
-  id: number | string;
-  propertyId: number;
+  id: string;
+  propertyId: string;
   unitNumber: string;
   floorplanName: string;
   bedrooms: number;

@@ -14,6 +14,7 @@ export interface UserResourceUsage {
 }
 
 export interface UserProfile {
+  id: string;
   uid: string;
   email: string;
   display_name: string;
@@ -25,7 +26,7 @@ export interface UserProfile {
   stripe_subscription_id?: string;
   settings: UserSettings;
   resource_usage?: UserResourceUsage[];
-  saved_properties?: { property_id: number }[];
+  saved_properties?: { property_id: string }[];
 }
 
 export const fetchUserSettings = async (): Promise<UserProfile> => {
@@ -38,12 +39,12 @@ export const updateUserSettings = async (key: string, value: unknown) => {
   return response.data;
 };
 
-export const addSavedProperty = async (propertyId: number | string) => {
+export const addSavedProperty = async (propertyId: string) => {
   const response = await apiClient.post(`/users/me/saved-properties/${propertyId}`, {});
   return response.data;
 };
 
-export const removeSavedProperty = async (propertyId: number | string) => {
+export const removeSavedProperty = async (propertyId: string) => {
   const response = await apiClient.delete(`/users/me/saved-properties/${propertyId}`);
   return response.data;
 };

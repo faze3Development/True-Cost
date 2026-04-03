@@ -56,7 +56,7 @@ func (r *repository) GetTopNavConfig(ctx context.Context) (string, error) {
 	if err == nil {
 		return cfg.ConfigJSON, nil
 	}
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != gorm.ErrRecordNotFound {
 		return "", err
 	}
 

@@ -1,22 +1,25 @@
 import React, { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
-import { createCheckoutSession } from "@/api/stripe";
+import { useCreateCheckoutSession } from "@/hooks/useSession";
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import { env } from "@/lib/env";
 
 export default function SubscriptionPanel() {
   const [loading, setLoading] = useState(false);
+  const createCheckoutMutation = useCreateCheckoutSession();
+  const toast = useToast();
 
   const handleSubscribe = async () => {
     try {
       setLoading(true);
       
-      const data = await createCheckoutSession(
-        'pro',
-        env.STRIPE_PRICE_PRO,
-        `${window.location.origin}/dashboard?success=true`,
-        `${window.location.origin}/dashboard?canceled=true`
-      );
+      const data = await createCheckoutMutation.mutateAsync({
+        tierId: 'pro',
+        priceId: env.STRIPE_PRICE_PRO,
+        successUrl: `${window.location.origin}/dashboard?success=true`,
+        cancelUrl: `${window.location.origin}/dashboard?canceled=true`
+      });
       
       const { session_url } = data;
       if (session_url) {
@@ -24,7 +27,7 @@ export default function SubscriptionPanel() {
       }
     } catch (error) {
       console.error('Subscription error:', error);
-      alert('Failed to start checkout. Please try again.');
+      toast.error('Checkout Failed', 'Failed to start checkout. Please try again.');
     } finally {
       setLoading(false);
     }

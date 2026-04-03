@@ -4,7 +4,8 @@ import Link from "next/link";
 import clsx from "clsx";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   TOP_NAV_CONFIG_STORAGE_KEY,
   TOP_NAV_CONFIG_UPDATED_EVENT,
@@ -28,7 +29,33 @@ export interface TopNavigationProps {
 
 export default function TopNavigation({ navLinks }: TopNavigationProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams?.get("q") ?? "";
+
   const [runtimeConfig, setRuntimeConfig] = useState<TopNavRuntimeConfig | null>(null);
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const debouncedQuery = useDebounce(searchQuery, 400);
+
+  useEffect(() => {
+    setSearchQuery(initialQuery);
+  }, [initialQuery]);
+
+  useEffect(() => {
+    if (debouncedQuery !== initialQuery) {
+      const params = new URLSearchParams(searchParams?.toString());
+      if (debouncedQuery) {
+        params.set("q", debouncedQuery);
+      } else {
+        params.delete("q");
+      }
+      
+      // If we are not on the map page, navigate to it to show the search results.
+      // Assuming Market Map is the root page '/'.
+      const targetPath = pathname === "/" ? `/?${params.toString()}` : `/?${params.toString()}`;
+      router.push(targetPath);
+    }
+  }, [debouncedQuery, initialQuery, pathname, router, searchParams]);
 
   useEffect(() => {
     const loadRuntimeConfig = () => {
@@ -115,6 +142,13 @@ export default function TopNavigation({ navLinks }: TopNavigationProps) {
               placeholder="Search location..."
               type="text"
               aria-label="Search location"
+              value={searchQuery}
+              onChange={(e) => {
+                // Strict client-side validation: Only allow alphanumeric chars, spaces, commas, and hyphens.
+                // This physically prevents dropping SQL keywords/symbols into the URL or sending them.
+                const sanitized = e.target.value.replace(/[^a-zA-Z0-9\s,\-]/g, '');
+                setSearchQuery(sanitized);
+              }}
             />
           </div>
           <button

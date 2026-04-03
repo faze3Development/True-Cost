@@ -1,7 +1,7 @@
 import type { PropertyCardProps } from "@/components/PropertyCard";
 
 export interface Property extends PropertyCardProps {
-  id: number | string;
+  id: string;
   latitude: number;
   longitude: number;
   propertyType?: string;

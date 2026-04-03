@@ -1,27 +1,27 @@
 import { apiClient } from "./client";
 import { type TopNavRuntimeConfig } from "@/routes";
 
-export type GormModel = {
-  ID: number;
-  CreatedAt?: string;
-  UpdatedAt?: string;
-  DeletedAt?: unknown;
+export type BaseModel = {
+  id: string;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: unknown;
 };
 
-export type Tenant = GormModel & {
+export type Tenant = BaseModel & {
   tenant_key: string;
   name: string;
   status: string;
 };
 
-export type SystemSetting = GormModel & {
+export type SystemSetting = BaseModel & {
   tenant_key: string;
   key: string;
   value: string;
   description?: string;
 };
 
-export type AdminSetting = GormModel & {
+export type AdminSetting = BaseModel & {
   tenant_key: string;
   key: string;
   value: string;
@@ -29,14 +29,14 @@ export type AdminSetting = GormModel & {
   updated_by_uid?: string;
 };
 
-export type Role = GormModel & {
+export type Role = BaseModel & {
   tenant_key: string;
   name: string;
   description?: string;
   is_super_admin: boolean;
 };
 
-export type Permission = GormModel & {
+export type Permission = BaseModel & {
   key: string;
   description?: string;
 };
@@ -99,12 +99,12 @@ export const fetchPermissions = async (): Promise<Permission[]> => {
 };
 
 export const setRolePermissions = async (
-  roleID: number,
+  roleID: string,
   payload: { permission_keys: string[] }
 ): Promise<void> => {
-  await apiClient.put(`/admin/rbac/roles/${roleID}/permissions`, payload);
+  await apiClient.put(`/admin/rbac/roles/${encodeURIComponent(roleID)}/permissions`, payload);
 };
 
-export const setUserRoles = async (uid: string, payload: { role_ids: number[] }): Promise<void> => {
+export const setUserRoles = async (uid: string, payload: { role_ids: string[] }): Promise<void> => {
   await apiClient.put(`/admin/rbac/users/${encodeURIComponent(uid)}/roles`, payload);
 };

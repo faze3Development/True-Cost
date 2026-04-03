@@ -60,9 +60,9 @@ export function useBookmarks() {
     if (isAuthenticated && user) {
       try {
         if (willAdd) {
-          await addSavedPropertyMutation.mutateAsync(rawId);
+          await addSavedPropertyMutation.mutateAsync(id);
         } else {
-          await removeSavedPropertyMutation.mutateAsync(rawId);
+          await removeSavedPropertyMutation.mutateAsync(id);
         }
         // Invalidate to refetch actual state
         queryClient.invalidateQueries({ queryKey: USER_KEYS.profile(user.uid) });

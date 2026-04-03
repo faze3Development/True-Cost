@@ -5,6 +5,7 @@ import { QueryProvider } from "@/components/QueryProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { MapStyleProvider } from "@/components/MapStyleProvider";
 import { AuthProvider } from "@/context/AuthContext";
+import { ToastProvider } from "@/context/ToastContext";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
@@ -33,9 +34,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           <QueryProvider>
             <AuthProvider>
-              <MapStyleProvider>
-                {children}
-              </MapStyleProvider>
+              <ToastProvider>
+                <MapStyleProvider>
+                  {children}
+                </MapStyleProvider>
+              </ToastProvider>
             </AuthProvider>
           </QueryProvider>
         </ThemeProvider>

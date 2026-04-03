@@ -4,22 +4,24 @@ import type { ApiUnit, ApiUnitResponse } from "@/types/unit";
 import { isValidPropertyId, isValidUnitId } from "@/security";
 
 export interface ApiFeeStructure {
-  id: number;
-  property_id: number;
+  id: string;
+  property_id: string;
   trash_fee: number;
   amenity_fee: number;
   package_fee: number;
-  water_sewer_fee: number;
-  move_in_fee: number;
-  move_out_fee: number;
-  pet_rent: number;
   parking_fee: number;
-  has_deposit: boolean;
-  has_pet_deposit: boolean;
+
+  // These fields are consumed by the UI but may not be present yet in the backend model.
+  water_sewer_fee?: number;
+  move_in_fee?: number;
+  move_out_fee?: number;
+  pet_rent?: number;
+  has_deposit?: boolean;
+  has_pet_deposit?: boolean;
 }
 
 export interface ApiPropertyDetailResponse {
-  id: number;
+  id: string;
   name: string;
   address: string;
   city: string;
@@ -28,11 +30,11 @@ export interface ApiPropertyDetailResponse {
   latitude: number;
   longitude: number;
   image_url?: string;
-  fee_structure: ApiFeeStructure;
+  fee_structure?: ApiFeeStructure;
 }
 
 export interface ApiPropertyResponse {
-  id: number | string;
+  id: string;
   title: string;
   neighborhood: string;
   city: string;
@@ -51,7 +53,7 @@ export const fetchProperties = async (bounds: string) => {
   return response.data;
 };
 
-export const fetchProperty = async (id: string | number) => {
+export const fetchProperty = async (id: string) => {
   const response = await apiClient.get<ApiPropertyDetailResponse>(`/properties/${id}`);
   return response.data;
 };
@@ -81,7 +83,7 @@ export const fetchUnitHistory = async (unitId: string, days = 90): Promise<UnitH
   });
 };
 
-export const fetchPropertyUnits = async (propertyId: string | number): Promise<ApiUnit[]> => {
+export const fetchPropertyUnits = async (propertyId: string): Promise<ApiUnit[]> => {
   if (!isValidPropertyId(propertyId)) {
     console.warn("Invalid propertyId passed to fetchPropertyUnits:", propertyId);
     return [];

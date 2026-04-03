@@ -10,7 +10,8 @@ import { type TopNavRuntimeConfig } from "@/routes";
 // DEV NOTE: Switched to centralized @/api/user so that all user profile fetch and updates
 // reuse the core Axios client with automatic interceptor-based token injection.
 import { useAuth } from "@/context/AuthContext";
-import { createCheckoutSession, createCustomerPortalSession } from "@/api/stripe";
+import { useCreateCheckoutSession, useCreateCustomerPortalSession } from "@/hooks/useSession";
+import { useToast } from "@/context/ToastContext";
 import { env } from "@/lib/env";
 
 const alerts = [
@@ -22,6 +23,9 @@ const alerts = [
 export default function SettingsPage() {
   const { mapStyle, setMapStyle } = useMapStyle();
   const { user: authUser, dbUser, updateUserSetting } = useAuth();
+  const createPortalMutation = useCreateCustomerPortalSession();
+  const createCheckoutMutation = useCreateCheckoutSession();
+  const toast = useToast();
 
   useEffect(() => {
     if (dbUser?.settings?.map_style) {
@@ -48,7 +52,7 @@ export default function SettingsPage() {
 
   const handleManageBilling = async () => {
     try {
-      const data = await createCustomerPortalSession(
+      const data = await createPortalMutation.mutateAsync(
         `${window.location.origin}/settings`
       );
       if (data.url) {
@@ -56,32 +60,32 @@ export default function SettingsPage() {
       }
     } catch (err) {
       console.error("Portal error:", err);
-      alert("Failed to open billing portal. Please contact support.");
+      toast.error("Portal Unavailable", "Failed to open billing portal. Please contact support.");
     }
   };
 
   const handleUpgrade = async () => {
     try {
       if (dbUser?.tier_id === "enterprise") {
-        alert("You are on the top tier! To modify your enterprise agreement, please contact support.");
+        toast.info("Institutional Tier", "You are on the top tier! To modify your enterprise agreement, please contact support.");
         return;
       }
 
       const targetTier = dbUser?.tier_id === "pro" ? "enterprise" : "pro";
       const targetPrice = dbUser?.tier_id === "pro" ? env.STRIPE_PRICE_ENTERPRISE : env.STRIPE_PRICE_PRO;
 
-      const response = await createCheckoutSession(
-        targetTier,
-        targetPrice || "price_dummy",
-        window.location.origin + "/settings?success=true",
-        window.location.origin + "/settings?canceled=true"
-      );
+      const response = await createCheckoutMutation.mutateAsync({
+        tierId: targetTier,
+        priceId: targetPrice || "price_dummy",
+        successUrl: window.location.origin + "/settings?success=true",
+        cancelUrl: window.location.origin + "/settings?canceled=true",
+      });
       if (response.session_url) {
         window.location.href = response.session_url;
       }
     } catch (err) {
       console.error("Failed to start checkout:", err);
-      alert("Billing system unavailable. Please try again later.");
+      toast.error("Checkout Failed", "Billing system unavailable. Please try again later.");
     }
   };
 

@@ -77,6 +77,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	mockAuthRequested := strings.EqualFold(os.Getenv("ENABLE_MOCK_AUTH"), "true")
+	if mockAuthRequested && env != "development" && env != "local" {
+		zap.L().Warn("ENABLE_MOCK_AUTH was requested outside local/development and has been ignored",
+			zap.String("env", env),
+			zap.Bool("effective_enable_mock_auth", cfg.EnableMockAuth),
+		)
+	}
+
 	database, err := db.Connect(cfg.DSN())
 	if err != nil {
 		zap.L().Error("database connect failed", zap.Error(err))

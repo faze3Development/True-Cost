@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { env } from "@/lib/env";
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const toast = useToast();
   const router = useRouter();
   const { signInWithGoogle, resetPassword, signIn } = useAuth();
 
@@ -27,7 +29,7 @@ export default function LoginPage() {
       // Let AuthContext handle redirect
     } catch (error) {
       console.error("Authentication failed:", error);
-      alert("Invalid credentials. Please try again.");
+      toast.error("Authentication failed", "Invalid credentials. Please try again.");
       setIsLoading(false);
     }
   };
@@ -39,7 +41,7 @@ export default function LoginPage() {
       // Router resolves in AuthContext
     } catch (error) {
       console.error("Google sign in failed:", error);
-      alert("Google sign in failed. Please try again.");
+      toast.error("Google sign in failed", "Google sign in failed. Please try again.");
       setIsLoading(false);
     }
   };
@@ -47,7 +49,7 @@ export default function LoginPage() {
   const handleForgotPassword = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!email) {
-      alert("Please enter your email address first.");
+      toast.info("Email Required", "Please enter your email address first.");
       return;
     }
     
@@ -57,7 +59,7 @@ export default function LoginPage() {
       setTimeout(() => setResetSent(false), 5000);
     } catch (error) {
       console.error("Failed to send reset email:", error);
-      alert("Failed to send reset email. Verify your email address.");
+      toast.error("Reset Failed", "Failed to send reset email. Verify your email address.");
     }
   };
 

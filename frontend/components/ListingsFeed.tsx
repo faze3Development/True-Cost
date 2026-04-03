@@ -2,6 +2,8 @@
 
 import PropertyCard from "@/components/PropertyCard";
 import { useBookmarks } from "@/hooks/useBookmarks";
+import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
+import { useState, useEffect, useMemo } from "react";
 import type { Property } from "@/types/property";
 import clsx from "clsx";
 import { env } from "@/lib/env";
@@ -27,6 +29,23 @@ const defaultFilters: FilterChip[] = [
 
 export default function ListingsFeed({ properties, resultsCount, filters = defaultFilters, isLoading, isError }: ListingsFeedProps) {
   const { bookmarkedIds, toggleBookmark } = useBookmarks();
+  const [displayLimit, setDisplayLimit] = useState(10);
+  const [setRef, isIntersecting] = useIntersectionObserver({ threshold: 0.1 });
+
+  useEffect(() => {
+    if (isIntersecting && displayLimit < properties.length) {
+      setDisplayLimit((prev) => prev + 10);
+    }
+  }, [isIntersecting, properties.length, displayLimit]);
+
+  // Reset limit if new results come in
+  useEffect(() => {
+    setDisplayLimit(10);
+  }, [properties]);
+
+  const displayedProperties = useMemo(() => {
+    return properties.slice(0, displayLimit);
+  }, [properties, displayLimit]);
 
   return (
     <section className="flex w-full max-w-[520px] flex-col bg-surface-container-low">
@@ -68,7 +87,7 @@ export default function ListingsFeed({ properties, resultsCount, filters = defau
           <p className="text-sm text-error">Unable to load properties. Showing any cached data.</p>
         ) : null}
 
-        {properties.map((property) => (
+        {displayedProperties.map((property) => (
           <PropertyCard
             key={property.id}
             {...property}
@@ -78,6 +97,15 @@ export default function ListingsFeed({ properties, resultsCount, filters = defau
             }}
           />
         ))}
+
+        {displayLimit < properties.length && (
+          <div ref={setRef} className="py-6 text-center">
+            <span className="material-symbols-outlined animate-spin text-primary" aria-hidden="true">
+              progress_activity
+            </span>
+            <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mt-2">Loading more listings...</p>
+          </div>
+        )}
       </div>
     </section>
   );

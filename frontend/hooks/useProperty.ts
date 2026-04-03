@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchProperty } from "@/api/properties";
 import type { ApiPropertyDetailResponse } from "@/api/properties";
 
-export function useProperty(id: string | number) {
+export function useProperty(id: string) {
   return useQuery<ApiPropertyDetailResponse>({
     queryKey: ["property", id],
     queryFn: async () => {

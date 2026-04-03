@@ -25,7 +25,7 @@ const tabs = ["All Assets", "Apartments", "Commercial", "New Construction"] as c
 type TrendDirection = "up" | "down" | "stable";
 
 type DerivedAsset = {
-  id: string | number;
+  id: string;
   title: string;
   city: string;
   neighborhood: string;
@@ -114,7 +114,7 @@ function deriveSegments(assets: DerivedAsset[], userSegments: Segment[]): Segmen
   return [...derived, ...userSegments];
 }
 
-function Sparkline({ propertyId }: { propertyId: string | number }) {
+function Sparkline({ propertyId }: { propertyId: string }) {
   // Validate propertyId using centralized validator
   const isValidId = isValidPropertyId(propertyId);
 
@@ -245,11 +245,11 @@ export default function SavedAssetsClient() {
     return Math.round((sum / filteredAssets.length) * 10) / 10;
   }, [filteredAssets]);
 
-  const handleBookmarkRemove = (id: string | number) => {
+  const handleBookmarkRemove = (id: string) => {
     toggleBookmark(id);
   };
 
-  const handleViewAnalysis = (id: string | number) => {
+  const handleViewAnalysis = (id: string) => {
     router.push(buildAnalyticsUrl(id));
   };
 

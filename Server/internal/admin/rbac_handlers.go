@@ -4,10 +4,10 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	appErrors "github.com/faze3Development/true-cost/Server/internal/infrastructure/errors"
@@ -26,7 +26,7 @@ type setRolePermissionsRequest struct {
 }
 
 type setUserRolesRequest struct {
-	RoleIDs []uint `json:"role_ids"`
+	RoleIDs []string `json:"role_ids"`
 }
 
 // ListRoles returns tenant-scoped RBAC roles.
@@ -98,12 +98,12 @@ func (h *Handler) SetRolePermissions(c *gin.Context) {
 	adminUID, _ := uidVal.(string)
 
 	roleIDRaw := strings.TrimSpace(c.Param("roleID"))
-	parsed, err := strconv.ParseUint(roleIDRaw, 10, 64)
-	if err != nil || parsed == 0 {
+	parsed, err := uuid.Parse(roleIDRaw)
+	if err != nil || parsed == uuid.Nil {
 		c.Error(appErrors.ErrValidation("admin/invalid_role_id", "Invalid role ID", nil))
 		return
 	}
-	roleID := uint(parsed)
+	roleID := parsed.String()
 
 	var req setRolePermissionsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

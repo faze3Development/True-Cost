@@ -36,8 +36,8 @@ type Service interface {
 	ListRoles(ctx context.Context) ([]models.Role, error)
 	CreateRole(ctx context.Context, name, description, createdByUID string) (*models.Role, error)
 	ListPermissions(ctx context.Context) ([]models.Permission, error)
-	SetRolePermissions(ctx context.Context, roleID uint, permissionKeys []string, updatedByUID string) error
-	SetUserRoles(ctx context.Context, userUID string, roleIDs []uint, assignedByUID string) error
+	SetRolePermissions(ctx context.Context, roleID string, permissionKeys []string, updatedByUID string) error
+	SetUserRoles(ctx context.Context, userUID string, roleIDs []string, assignedByUID string) error
 }
 
 // RBACManager exposes RBAC operations needed by admin endpoints.
@@ -46,8 +46,8 @@ type RBACManager interface {
 	ListRoles(ctx context.Context) ([]models.Role, error)
 	CreateRole(ctx context.Context, name, description string) (*models.Role, error)
 	ListPermissions(ctx context.Context) ([]models.Permission, error)
-	SetRolePermissions(ctx context.Context, roleID uint, permissionKeys []string) error
-	SetUserRoles(ctx context.Context, userUID string, roleIDs []uint, assignedByUID string) error
+	SetRolePermissions(ctx context.Context, roleID string, permissionKeys []string) error
+	SetUserRoles(ctx context.Context, userUID string, roleIDs []string, assignedByUID string) error
 }
 
 type service struct {
@@ -290,7 +290,7 @@ func (s *service) ListPermissions(ctx context.Context) ([]models.Permission, err
 	return s.rbac.ListPermissions(ctx)
 }
 
-func (s *service) SetRolePermissions(ctx context.Context, roleID uint, permissionKeys []string, updatedByUID string) error {
+func (s *service) SetRolePermissions(ctx context.Context, roleID string, permissionKeys []string, updatedByUID string) error {
 	if s.rbac == nil {
 		return errors.New("rbac service not configured")
 	}
@@ -311,7 +311,7 @@ func (s *service) SetRolePermissions(ctx context.Context, roleID uint, permissio
 	return nil
 }
 
-func (s *service) SetUserRoles(ctx context.Context, userUID string, roleIDs []uint, assignedByUID string) error {
+func (s *service) SetUserRoles(ctx context.Context, userUID string, roleIDs []string, assignedByUID string) error {
 	if s.rbac == nil {
 		return errors.New("rbac service not configured")
 	}

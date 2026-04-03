@@ -102,14 +102,14 @@ export function useCreateRole() {
 export function useSetRolePermissions() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ roleID, payload }: { roleID: number; payload: { permission_keys: string[] } }) =>
+    mutationFn: ({ roleID, payload }: { roleID: string; payload: { permission_keys: string[] } }) =>
       setRolePermissions(roleID, payload),
   });
 }
 
 export function useSetUserRoles() {
   return useMutation({
-    mutationFn: ({ uid, payload }: { uid: string; payload: { role_ids: number[] } }) =>
+    mutationFn: ({ uid, payload }: { uid: string; payload: { role_ids: string[] } }) =>
       setUserRoles(uid, payload),
   });
 }

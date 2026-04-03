@@ -1,16 +1,12 @@
 // Package models defines the GORM database models for the True Cost application.
 package models
 
-import (
-	"time"
-
-	"gorm.io/gorm"
-)
+import "time"
 
 // Property represents a rental property (apartment complex or building).
 // It has many Units and one FeeStructure.
 type Property struct {
-	gorm.Model
+	BaseModel
 	Name         string       `gorm:"not null"                   json:"name"`
 	Address      string       `gorm:"not null"                   json:"address"`
 	City         string       `gorm:"not null;index"             json:"city"`
@@ -28,8 +24,8 @@ type Property struct {
 // FeeStructure holds the recurring fee breakdown for a Property.
 // It belongs to exactly one Property (Has One from Property side).
 type FeeStructure struct {
-	gorm.Model
-	PropertyID uint    `gorm:"not null;uniqueIndex"       json:"property_id"`
+	BaseModel
+	PropertyID string  `gorm:"type:uuid;not null;uniqueIndex"       json:"property_id"`
 	TrashFee   float64 `gorm:"not null;default:0"         json:"trash_fee"`
 	AmenityFee float64 `gorm:"not null;default:0"         json:"amenity_fee"`
 	PackageFee float64 `gorm:"not null;default:0"         json:"package_fee"`
@@ -39,8 +35,8 @@ type FeeStructure struct {
 // Unit represents a specific unit or floorplan within a Property.
 // It has many PriceRecords.
 type Unit struct {
-	gorm.Model
-	PropertyID    uint          `gorm:"not null;index"             json:"property_id"`
+	BaseModel
+	PropertyID    string        `gorm:"type:uuid;not null;index"             json:"property_id"`
 	UnitNumber    string        `gorm:"not null"                   json:"unit_number"`
 	FloorplanName string        `gorm:"not null"                   json:"floorplan_name"`
 	Bedrooms      float64       `gorm:"not null"                   json:"bedrooms"`
@@ -52,8 +48,8 @@ type Unit struct {
 // PriceRecord is a single scraped data point for a Unit on a specific day.
 // Both UnitID and DateScraped are individually indexed for efficient querying.
 type PriceRecord struct {
-	gorm.Model
-	UnitID          uint      `gorm:"not null;index"             json:"unit_id"`
+	BaseModel
+	UnitID          string    `gorm:"type:uuid;not null;index"             json:"unit_id"`
 	DateScraped     time.Time `gorm:"not null;index"             json:"date_scraped"`
 	AdvertisedRent  float64   `gorm:"not null"                   json:"advertised_rent"`
 	ConcessionText  string    `gorm:"type:text"                  json:"concession_text"`
@@ -67,7 +63,7 @@ type PriceRecord struct {
 
 // User represents an authenticated user in the system.
 type User struct {
-	gorm.Model
+	BaseModel
 	TenantKey            string               `gorm:"not null;default:'default';index" json:"tenant_key"`
 	UID                  string               `gorm:"uniqueIndex;not null" json:"uid"` // Identity provider ID (e.g. Firebase)
 	Email                string               `gorm:"uniqueIndex;not null" json:"email"`
@@ -96,8 +92,8 @@ type SubscriptionTier struct {
 
 // ResourceUsage tracks the current utilization constraints for an individual User.
 type ResourceUsage struct {
-	gorm.Model
-	UserID       uint   `gorm:"not null;uniqueIndex:idx_user_resource" json:"user_id"`
+	BaseModel
+	UserID       string `gorm:"type:uuid;not null;uniqueIndex:idx_user_resource" json:"user_id"`
 	ResourceType string `gorm:"not null;uniqueIndex:idx_user_resource" json:"resource_type"`
 	Used         int    `gorm:"not null;default:0" json:"used"`
 }
@@ -113,8 +109,8 @@ type UserSettings struct {
 
 // UserWatchlistAlert represents a user's configured market alert.
 type UserWatchlistAlert struct {
-	gorm.Model
-	UserID   uint   `gorm:"not null;index" json:"user_id"`
+	BaseModel
+	UserID   string `gorm:"type:uuid;not null;index" json:"user_id"`
 	Title    string `gorm:"not null"       json:"title"`
 	Detail   string `gorm:"not null"       json:"detail"`
 	IsActive *bool  `gorm:"default:true"   json:"is_active"`
@@ -123,7 +119,7 @@ type UserWatchlistAlert struct {
 
 // SystemSetting represents a global configuration key-value pair for the application.
 type SystemSetting struct {
-	gorm.Model
+	BaseModel
 	TenantKey   string `gorm:"not null;default:'default';uniqueIndex:ux_system_settings_tenant_key_key" json:"tenant_key"`
 	Key         string `gorm:"not null;uniqueIndex:ux_system_settings_tenant_key_key" json:"key"`
 	Value       string `gorm:"type:text;not null"   json:"value"`
@@ -132,7 +128,7 @@ type SystemSetting struct {
 
 // AdminNavConfig stores the canonical admin-managed top navigation layout.
 type AdminNavConfig struct {
-	gorm.Model
+	BaseModel
 	TenantKey    string `gorm:"not null;default:'default';uniqueIndex:ux_admin_nav_configs_tenant_key_scope" json:"tenant_key"`
 	Scope        string `gorm:"not null;uniqueIndex:ux_admin_nav_configs_tenant_key_scope" json:"scope"`
 	ConfigJSON   string `gorm:"type:text;not null"   json:"config_json"`
@@ -141,7 +137,7 @@ type AdminNavConfig struct {
 
 // AdminSetting stores admin-managed runtime settings with ownership metadata.
 type AdminSetting struct {
-	gorm.Model
+	BaseModel
 	TenantKey    string `gorm:"not null;default:'default';uniqueIndex:ux_admin_settings_tenant_key_key" json:"tenant_key"`
 	Key          string `gorm:"not null;uniqueIndex:ux_admin_settings_tenant_key_key" json:"key"`
 	Value        string `gorm:"type:text;not null"   json:"value"`
@@ -151,7 +147,7 @@ type AdminSetting struct {
 
 // UserSavedProperty represents a property explicitly bookmarked by a user.
 type UserSavedProperty struct {
-	gorm.Model
-	UserID     uint `gorm:"not null;uniqueIndex:idx_user_property" json:"user_id"`
-	PropertyID uint `gorm:"not null;uniqueIndex:idx_user_property" json:"property_id"`
+	BaseModel
+	UserID     string `gorm:"type:uuid;not null;uniqueIndex:idx_user_property" json:"user_id"`
+	PropertyID string `gorm:"type:uuid;not null;uniqueIndex:idx_user_property" json:"property_id"`
 }

@@ -32,18 +32,14 @@ func (e *UnknownPermissionKeysError) Error() string {
 }
 
 type UnknownRoleIDsError struct {
-	Missing []uint
+	Missing []string
 }
 
 func (e *UnknownRoleIDsError) Error() string {
 	if e == nil || len(e.Missing) == 0 {
 		return "unknown role IDs"
 	}
-	parts := make([]string, 0, len(e.Missing))
-	for _, id := range e.Missing {
-		parts = append(parts, fmt.Sprintf("%d", id))
-	}
-	return "unknown role IDs: " + strings.Join(parts, ", ")
+	return "unknown role IDs: " + strings.Join(e.Missing, ", ")
 }
 
 // Repository provides persistence operations for roles/permissions.
@@ -53,8 +49,8 @@ type Repository interface {
 	ListRoles(ctx context.Context) ([]models.Role, error)
 	CreateRole(ctx context.Context, name, description string) (*models.Role, error)
 	ListPermissions(ctx context.Context) ([]models.Permission, error)
-	SetRolePermissions(ctx context.Context, roleID uint, permissionKeys []string) error
-	SetUserRoles(ctx context.Context, userUID string, roleIDs []uint, assignedByUID string) error
+	SetRolePermissions(ctx context.Context, roleID string, permissionKeys []string) error
+	SetUserRoles(ctx context.Context, userUID string, roleIDs []string, assignedByUID string) error
 }
 
 type repository struct {
@@ -93,7 +89,7 @@ func (r *repository) EnsureBootstrapSuperAdmin(ctx context.Context, uid string) 
 			return err
 		}
 
-		if role.ID == 0 {
+		if role.ID == "" {
 			if err := tx.Where("tenant_key = ? AND name = ?", tenantKey, SuperAdminRoleName).First(&role).Error; err != nil {
 				return err
 			}
@@ -198,7 +194,7 @@ func (r *repository) ListPermissions(ctx context.Context) ([]models.Permission, 
 	return perms, nil
 }
 
-func (r *repository) SetRolePermissions(ctx context.Context, roleID uint, permissionKeys []string) error {
+func (r *repository) SetRolePermissions(ctx context.Context, roleID string, permissionKeys []string) error {
 	tenantKey := tenant.FromContext(ctx)
 	db := dbctx.GetDB(ctx, r.db)
 
@@ -261,7 +257,7 @@ func (r *repository) SetRolePermissions(ctx context.Context, roleID uint, permis
 	})
 }
 
-func (r *repository) SetUserRoles(ctx context.Context, userUID string, roleIDs []uint, assignedByUID string) error {
+func (r *repository) SetUserRoles(ctx context.Context, userUID string, roleIDs []string, assignedByUID string) error {
 	userUID = strings.TrimSpace(userUID)
 	if userUID == "" {
 		return fmt.Errorf("user uid is required")
@@ -274,10 +270,11 @@ func (r *repository) SetUserRoles(ctx context.Context, userUID string, roleIDs [
 	tenantKey := tenant.FromContext(ctx)
 	db := dbctx.GetDB(ctx, r.db)
 
-	uniqueRoleIDs := make([]uint, 0, len(roleIDs))
-	seen := make(map[uint]struct{}, len(roleIDs))
+	uniqueRoleIDs := make([]string, 0, len(roleIDs))
+	seen := make(map[string]struct{}, len(roleIDs))
 	for _, id := range roleIDs {
-		if id == 0 {
+		id = strings.TrimSpace(id)
+		if id == "" {
 			continue
 		}
 		if _, ok := seen[id]; ok {
@@ -304,11 +301,11 @@ func (r *repository) SetUserRoles(ctx context.Context, userUID string, roleIDs [
 		if err := tx.Where("id IN ? AND tenant_key = ?", uniqueRoleIDs, tenantKey).Find(&roles).Error; err != nil {
 			return err
 		}
-		found := make(map[uint]struct{}, len(roles))
+		found := make(map[string]struct{}, len(roles))
 		for _, r := range roles {
 			found[r.ID] = struct{}{}
 		}
-		missing := make([]uint, 0)
+		missing := make([]string, 0)
 		for _, id := range uniqueRoleIDs {
 			if _, ok := found[id]; !ok {
 				missing = append(missing, id)

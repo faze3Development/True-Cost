@@ -35,7 +35,7 @@ func (h *Handler) AddSavedProperty(c *gin.Context) {
 
 	savedProperty := models.UserSavedProperty{
 		UserID:     user.ID,
-		PropertyID: uint(propertyID),
+		PropertyID: propertyID,
 	}
 
 	// db.Clauses(clause.OnConflict{DoNothing: true}).Create(&savedProperty)

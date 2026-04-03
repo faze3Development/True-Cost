@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -65,6 +66,9 @@ type Config struct {
 // Load reads configuration from environment variables and returns a Config.
 // Missing required fields cause an error to be returned.
 func Load() (*Config, error) {
+	envName := strings.ToLower(getEnv("ENV", "development"))
+	allowMockAuth := getEnv("ENABLE_MOCK_AUTH", "false") == "true" && (envName == "development" || envName == "local")
+
 	cfg := &Config{
 		DBHost:        getEnv("DB_HOST", "localhost"),
 		DBPort:        getEnv("DB_PORT", "5432"),
@@ -100,7 +104,7 @@ func Load() (*Config, error) {
 		StripeMode:          getEnv("STRIPE_MODE", "test"),
 
 		AdminBootstrapSecret: getEnv("ADMIN_BOOTSTRAP_SECRET", ""),
-		EnableMockAuth:       getEnv("ENABLE_MOCK_AUTH", "false") == "true",
+		EnableMockAuth:       allowMockAuth,
 	}
 
 	if cfg.DBPassword == "" {

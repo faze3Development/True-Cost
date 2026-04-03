@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"strings"
 
@@ -21,6 +22,26 @@ const TokenKey = "firebaseToken"
 // UserSyncer defines an interface to sync users from Firebase into the database.
 type UserSyncer interface {
 	GetOrCreateUser(ctx context.Context, uid, email, displayName string) (*models.User, error)
+}
+
+func logMockAuthDenied(c *gin.Context, reason string) {
+	tenantKey := c.GetString("tenantKey")
+	if tenantKey == "" {
+		tenantKey = "default"
+	}
+
+	zap.L().Warn("mock auth denied",
+		zap.String("reason", reason),
+		zap.String("client_ip", c.ClientIP()),
+		zap.String("method", c.Request.Method),
+		zap.String("path", c.Request.URL.Path),
+		zap.String("tenant_key", tenantKey),
+	)
+}
+
+func isLoopbackRequest(c *gin.Context) bool {
+	clientIP := net.ParseIP(c.ClientIP())
+	return clientIP != nil && clientIP.IsLoopback()
 }
 
 // EnsureAuthenticated validates Bearer tokens using Firebase Auth and syncs the user details
@@ -47,6 +68,12 @@ func EnsureAuthenticated(client *Client, syncer UserSyncer, enableMockAuth bool)
 		var uid string
 
 		if enableMockAuth && tokenString == "MOCK_TOKEN" {
+			if !isLoopbackRequest(c) {
+				logMockAuthDenied(c, "non_loopback_client")
+				c.AbortWithStatusJSON(http.StatusForbidden, errors.ErrForbidden("auth/mock_forbidden", "Mock authentication is only allowed from local loopback requests"))
+				return
+			}
+
 			// Local development bypass
 			uid = "mock-user-123"
 			if syncer != nil {
@@ -122,6 +149,12 @@ func OptionalAuth(client *Client, syncer UserSyncer, enableMockAuth bool) gin.Ha
 				tokenString := parts[1]
 
 				if enableMockAuth && tokenString == "MOCK_TOKEN" {
+					if !isLoopbackRequest(c) {
+						logMockAuthDenied(c, "non_loopback_client")
+						c.AbortWithStatusJSON(http.StatusForbidden, errors.ErrForbidden("auth/mock_forbidden", "Mock authentication is only allowed from local loopback requests"))
+						return
+					}
+
 					if syncer != nil {
 						_, _ = syncer.GetOrCreateUser(c.Request.Context(), "mock-user-123", "analyst@truecost.city", "Lead Analyst")
 					}

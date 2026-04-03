@@ -52,7 +52,7 @@ func (p *Producer) EnqueueHandler(w http.ResponseWriter, r *http.Request) {
 		task, err := NewScrapePropertyTask(prop.ID, prop.WebsiteURL, jitter, p.maxRetries, p.taskTimeout)
 		if err != nil {
 			zap.L().Error("producer: failed to create task",
-				zap.Uint64("property_id", uint64(prop.ID)),
+				zap.String("property_id", prop.ID),
 				zap.Error(err),
 			)
 			continue
@@ -61,14 +61,14 @@ func (p *Producer) EnqueueHandler(w http.ResponseWriter, r *http.Request) {
 		info, err := p.client.Enqueue(task)
 		if err != nil {
 			zap.L().Error("producer: failed to enqueue task",
-				zap.Uint64("property_id", uint64(prop.ID)),
+				zap.String("property_id", prop.ID),
 				zap.Error(err),
 			)
 			continue
 		}
 
 		zap.L().Info("producer: task enqueued",
-			zap.Uint64("property_id", uint64(prop.ID)),
+			zap.String("property_id", prop.ID),
 			zap.String("task_id", info.ID),
 			zap.Duration("jitter", jitter),
 		)

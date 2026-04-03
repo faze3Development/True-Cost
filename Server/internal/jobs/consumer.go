@@ -16,13 +16,13 @@ import (
 
 // Consumer processes scrape tasks dequeued from Redis via Asynq.
 type Consumer struct {
-	server           *asynq.Server
-	mux              *asynq.ServeMux
-	db               *gorm.DB
-	scraperTimeout   time.Duration
-	scraperSleep     time.Duration
-	confidenceScore  int
-	dataSource       string
+	server          *asynq.Server
+	mux             *asynq.ServeMux
+	db              *gorm.DB
+	scraperTimeout  time.Duration
+	scraperSleep    time.Duration
+	confidenceScore int
+	dataSource      string
 }
 
 // NewConsumer creates and configures the Asynq server and ServeMux, then
@@ -81,13 +81,24 @@ func (c *Consumer) HandleScrapeProperty(ctx context.Context, task *asynq.Task) e
 	}
 
 	zap.L().Info("consumer: starting scrape",
-		zap.Uint64("property_id", uint64(payload.PropertyID)),
+		zap.String("property_id", payload.PropertyID),
 		zap.String("url", payload.URL),
 	)
 
-	units, err := scraper.ExtractPricing(payload.URL, c.scraperTimeout, c.scraperSleep, c.confidenceScore)
+	units, imageURL, err := scraper.ExtractPricing(payload.URL, c.scraperTimeout, c.scraperSleep, c.confidenceScore)
 	if err != nil {
-		return fmt.Errorf("extract pricing for property %d: %w", payload.PropertyID, err)
+		return fmt.Errorf("extract pricing for property %s: %w", payload.PropertyID, err)
+	}
+
+	if imageURL != "" {
+		if err := c.db.Model(&models.Property{}).
+			Where("id = ?", payload.PropertyID).
+			Update("image_url", imageURL).Error; err != nil {
+			zap.L().Warn("consumer: update property image_url failed",
+				zap.String("property_id", payload.PropertyID),
+				zap.Error(err),
+			)
+		}
 	}
 
 	now := time.Now().UTC()
@@ -127,14 +138,14 @@ func (c *Consumer) HandleScrapeProperty(ctx context.Context, task *asynq.Task) e
 
 		if err := c.db.Create(&record).Error; err != nil {
 			zap.L().Error("consumer: create price record failed",
-				zap.Uint64("unit_id", uint64(unit.ID)),
+				zap.String("unit_id", unit.ID),
 				zap.Error(err),
 			)
 		}
 	}
 
 	zap.L().Info("consumer: scrape complete",
-		zap.Uint64("property_id", uint64(payload.PropertyID)),
+		zap.String("property_id", payload.PropertyID),
 		zap.Int("units_processed", len(units)),
 	)
 
