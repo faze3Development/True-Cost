@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -27,18 +27,23 @@ type Handler struct {
 
 // propertyResponse shapes property data for the map pins and listings feed.
 type propertyResponse struct {
-	ID             string  `json:"id"`
-	Title          string  `json:"title"`
-	Neighborhood   string  `json:"neighborhood"`
-	City           string  `json:"city"`
-	Latitude       float64 `json:"latitude"`
-	Longitude      float64 `json:"longitude"`
-	AdvertisedRent float64 `json:"advertisedRent"`
-	TrueCost       float64 `json:"trueCost"`
-	ImageURL       string  `json:"imageUrl,omitempty"`
-	IsVerified     bool    `json:"isVerified"`
-	BadgeLabel     string  `json:"badgeLabel,omitempty"`
-	Insight        string  `json:"insight,omitempty"`
+	ID                 string   `json:"id"`
+	Title              string   `json:"title"`
+	Neighborhood       string   `json:"neighborhood"`
+	City               string   `json:"city"`
+	Latitude           float64  `json:"latitude"`
+	Longitude          float64  `json:"longitude"`
+	AdvertisedRent     float64  `json:"advertisedRent"`
+	TrueCost           float64  `json:"trueCost"`
+	TotalMandatoryFees float64  `json:"totalMandatoryFees"`
+	FeeDisclosure      string   `json:"feeDisclosure"`
+	DealScore          float64  `json:"dealScore"`
+	EstimateType       string   `json:"estimateType"`
+	LegalDisclaimers   []string `json:"legalDisclaimers"`
+	ImageURL           string   `json:"imageUrl,omitempty"`
+	IsVerified         bool     `json:"isVerified"`
+	BadgeLabel         string   `json:"badgeLabel,omitempty"`
+	Insight            string   `json:"insight,omitempty"`
 }
 
 // New returns an initialised Handler.
@@ -90,24 +95,64 @@ func (h *Handler) ListProperties(c *gin.Context) {
 
 	responses := make([]propertyResponse, 0, len(properties))
 	for _, p := range properties {
-		totalFees := p.FeeStructure.TrashFee + p.FeeStructure.AmenityFee + p.FeeStructure.PackageFee
-		advertised, trueCost := h.computePropertyPricing(p.ID, totalFees)
+		record := h.getLowestAdvertisedRecord(p.ID)
+		deal := buildDealAnalysis(record, p.FeeStructure)
 
 		responses = append(responses, propertyResponse{
-			ID:             p.ID,
-			Title:          p.Name,
-			Neighborhood:   p.City,
-			City:           p.City,
-			Latitude:       p.Latitude,
-			Longitude:      p.Longitude,
-			AdvertisedRent: advertised,
-			TrueCost:       trueCost,
-			ImageURL:       p.ImageURL,
-			IsVerified:     p.FeeStructure.ID != "",
+			ID:                 p.ID,
+			Title:              p.Name,
+			Neighborhood:       p.City,
+			City:               p.City,
+			Latitude:           p.Latitude,
+			Longitude:          p.Longitude,
+			AdvertisedRent:     deal.AdvertisedRent,
+			TrueCost:           deal.TrueCost,
+			TotalMandatoryFees: deal.TotalMandatoryFees,
+			FeeDisclosure:      deal.FeeDisclosure,
+			DealScore:          deal.DealScore,
+			EstimateType:       deal.EstimateType,
+			LegalDisclaimers:   deal.LegalDisclaimers,
+			ImageURL:           p.ImageURL,
+			IsVerified:         p.FeeStructure.ID != "",
 		})
 	}
 
 	c.JSON(http.StatusOK, responses)
+}
+
+type propertyDealAnalysisResponse struct {
+	PropertyID string              `json:"propertyId"`
+	Analysis   dealAnalysisPayload `json:"analysis"`
+}
+
+// GetPropertyDealAnalysis returns the multi-agent, guardrailed deal-analysis payload.
+func (h *Handler) GetPropertyDealAnalysis(c *gin.Context) {
+	id, err := parseIDParam(c, "id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid property id"})
+		return
+	}
+
+	var property models.Property
+	result := h.DB.Preload("FeeStructure").Where("id = ?", id).First(&property)
+	if result.Error != nil {
+		if isNotFound(result.Error) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "property not found"})
+			return
+		}
+		zap.L().Error("GetPropertyDealAnalysis: db query failed",
+			zap.String("property_id", id),
+			zap.Error(result.Error),
+		)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch property"})
+		return
+	}
+
+	analysis := buildDealAnalysis(h.getLowestAdvertisedRecord(property.ID), property.FeeStructure)
+	c.JSON(http.StatusOK, propertyDealAnalysisResponse{
+		PropertyID: property.ID,
+		Analysis:   analysis,
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -186,7 +231,7 @@ func (h *Handler) ListUnits(c *gin.Context) {
 // The optional ?days= query parameter limits results to the last N days
 // (defaults to 30). Each record includes a computed true_cost field.
 //
-// true_cost = EffectiveRent + TrashFee + AmenityFee + PackageFee
+// true_cost = EffectiveRent + TrashFee + AmenityFee + PackageFee + ParkingFee
 func (h *Handler) GetUnitHistory(c *gin.Context) {
 	unitID, err := parseIDParam(c, "id")
 	if err != nil {
@@ -257,7 +302,8 @@ func (h *Handler) GetUnitHistory(c *gin.Context) {
 		records[i].TrueCost = records[i].EffectiveRent +
 			feeStructure.TrashFee +
 			feeStructure.AmenityFee +
-			feeStructure.PackageFee
+			feeStructure.PackageFee +
+			feeStructure.ParkingFee
 	}
 
 	c.JSON(http.StatusOK, records)
@@ -286,6 +332,17 @@ func isNotFound(err error) bool {
 // property by querying the lowest advertised rent across its units. True cost
 // applies the building's mandatory fees to the effective rent.
 func (h *Handler) computePropertyPricing(propertyID string, totalFees float64) (float64, float64) {
+	record := h.getLowestAdvertisedRecord(propertyID)
+
+	if record.ID == "" {
+		return 0, totalFees
+	}
+
+	trueCost := record.EffectiveRent + totalFees
+	return record.AdvertisedRent, trueCost
+}
+
+func (h *Handler) getLowestAdvertisedRecord(propertyID string) models.PriceRecord {
 	var record models.PriceRecord
 	err := h.DB.
 		Table("price_records").
@@ -293,16 +350,14 @@ func (h *Handler) computePropertyPricing(propertyID string, totalFees float64) (
 		Where("units.property_id = ?", propertyID).
 		Order("advertised_rent ASC").
 		First(&record).Error
-
 	if err != nil {
 		if !isNotFound(err) {
-			zap.L().Warn("computePropertyPricing: price lookup failed", zap.String("property_id", propertyID), zap.Error(err))
+			zap.L().Warn("getLowestAdvertisedRecord: price lookup failed", zap.String("property_id", propertyID), zap.Error(err))
 		}
-		return 0, totalFees
+		return models.PriceRecord{}
 	}
 
-	trueCost := record.EffectiveRent + totalFees
-	return record.AdvertisedRent, trueCost
+	return record
 }
 
 type bounds struct {

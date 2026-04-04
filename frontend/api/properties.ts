@@ -42,6 +42,11 @@ export interface ApiPropertyResponse {
   longitude: number;
   advertisedRent: number;
   trueCost: number;
+  totalMandatoryFees?: number;
+  feeDisclosure?: string;
+  dealScore?: number;
+  estimateType?: string;
+  legalDisclaimers?: string[];
   imageUrl?: string;
   isVerified?: boolean;
   badgeLabel?: string;

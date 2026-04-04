@@ -82,6 +82,7 @@ Base path: `/api/v1`
 | `GET` | `/properties` | `city`, `state` | List all properties; optionally filter by city and/or state (case-insensitive) |
 | `GET` | `/properties/:id` | — | Get a single property, including its `FeeStructure` |
 | `GET` | `/properties/:id/units` | `beds` | List units for a property; `beds` supports fractional values (e.g. `0.5` for studios) |
+| `GET` | `/properties/:id/deal-analysis` | — | Return guardrailed multi-agent deal analysis with fee disclosure and legal disclaimers |
 
 ### Units
 
@@ -92,7 +93,7 @@ Base path: `/api/v1`
 #### `true_cost` formula
 
 ```
-true_cost = effective_rent + trash_fee + amenity_fee + package_fee
+true_cost = effective_rent + trash_fee + amenity_fee + package_fee + parking_fee
 ```
 
 `effective_rent` is the advertised rent after any concession is applied. `true_cost` is computed at query time and is not stored in the database.

@@ -15,6 +15,11 @@ export interface PropertyCardProps {
   city: string;
   advertisedRent: number;
   trueCost: number;
+  totalMandatoryFees?: number;
+  feeDisclosure?: string;
+  dealScore?: number;
+  estimateType?: string;
+  legalDisclaimers?: string[];
   imageUrl?: string | null;
   badgeLabel?: string;
   insight?: Insight;
@@ -135,6 +140,17 @@ export default function PropertyCard({
                 {currency.format(trueCost)}
               </p>
             </div>
+          </div>
+          <div className="mt-3 rounded-lg border border-outline/20 bg-surface-container px-3 py-2 text-[11px] text-on-surface-variant">
+            <p className="font-semibold text-on-surface">Deal Score: {typeof dealScore === "number" ? `${dealScore.toFixed(1)}%` : "N/A"}</p>
+            {feeDisclosure ? <p className="mt-1">{feeDisclosure}</p> : null}
+            {legalDisclaimers && legalDisclaimers.length > 0 ? (
+              <div className="mt-1 space-y-1">
+                {legalDisclaimers.map((disclaimer) => (
+                  <p key={disclaimer}>{disclaimer}</p>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
       </article>
