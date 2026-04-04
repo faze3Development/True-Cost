@@ -25,16 +25,19 @@ Routes are categorized by access level:
 ### PUBLIC_ROUTES
 Available to all users without authentication:
 - Market Map
-- Property Insights
 - Cost Calculator
 
 ### PROTECTED_ROUTES
 Require authentication:
+- Market Analysis
+- Alerts
 - Portfolio Analytics
 - Saved Reports
 
 ### ADMIN_ROUTES
 Require admin access:
+- Admin Panel
+- Management
 - Settings
 
 ### TOP_NAV_LINKS
@@ -56,14 +59,14 @@ const routes = getAccessibleRoutes(true, false); // authenticated user
 Check if a user can access a specific route.
 
 ```typescript
-const canAccess = canAccessRoute("/pages/reports", true, false);
+const canAccess = canAccessRoute("/reports", true, false);
 ```
 
 ### `isProtectedRoute(href)`
 Check if a route requires authentication.
 
 ```typescript
-if (isProtectedRoute("/pages/reports")) {
+if (isProtectedRoute("/reports")) {
   // Handle protected route logic
 }
 ```
@@ -72,7 +75,7 @@ if (isProtectedRoute("/pages/reports")) {
 Check if a route requires admin access.
 
 ```typescript
-if (isAdminRoute("/pages/settings")) {
+if (isAdminRoute("/settings")) {
   // Handle admin-only logic
 }
 ```
@@ -88,21 +91,15 @@ const navLinks = getVisibleNavLinks(isAuthenticated, isAdmin);
 Get filtered top navigation links for a specific pathname.
 
 ```typescript
-const navLinks = getVisibleNavLinksForPath("/pages/reports", true, false);
+const navLinks = getVisibleNavLinksForPath("/reports", true, false);
 ```
 
-### Dynamic Top Navigation via Environment Variables
-Top navigation can be configured per page with these variables:
-
-- `NEXT_PUBLIC_TOP_NAV_SETS_JSON`: JSON object of named nav sets
-- `NEXT_PUBLIC_TOP_NAV_PAGE_RULES_JSON`: JSON array that maps pathname prefixes to a nav set
-
-### Runtime Admin Overrides (Drag-and-Drop)
-Admins can now override top navigation at runtime from the Settings page.
+### Runtime Admin Overrides (DB-Driven)
+Top navigation is configured at runtime from user profile settings in the database.
+Admins can manage top navigation from the Settings page.
 
 - Editor UI: `Settings -> Top Nav Layout Manager`
-- Storage key: `topNavRuntimeConfig` (local storage)
-- Live refresh event: `top-nav-config-updated`
+- Persistence: `users.me.settings.top_nav_config` (database)
 - Saved payload shape:
 
 ```json
@@ -114,28 +111,28 @@ Admins can now override top navigation at runtime from the Settings page.
 }
 ```
 
-Runtime overrides take precedence in the header. Environment variables remain the default fallback.
+Runtime overrides take precedence in the header. Typed route defaults remain the fallback.
 
-Example nav sets JSON:
+Example runtime payload:
 
 ```json
 {
   "default": [
     { "label": "Market Map", "href": "/", "type": "public" },
-    { "label": "Settings", "href": "/pages/settings", "type": "admin" }
+    { "label": "Settings", "href": "/settings", "type": "admin" }
   ],
   "reports": [
-    { "label": "Market Trends", "href": "/pages/price-index", "type": "public" },
-    { "label": "Saved Reports", "href": "/pages/reports", "type": "protected" }
+    { "label": "Market Trends", "href": "/price-index", "type": "public" },
+    { "label": "Saved Reports", "href": "/reports", "type": "protected" }
   ]
 }
 ```
 
-Example page rules JSON:
+Example page rules:
 
 ```json
 [
-  { "prefix": "/pages/reports", "set": "reports" },
+  { "prefix": "/reports", "set": "reports" },
   { "prefix": "/", "set": "default" }
 ]
 ```
@@ -182,7 +179,7 @@ function checkRouteAccess(pathname: string, isAuthenticated: boolean) {
 ### Adding New Routes
 1. Define the route in `navigation.ts`
 2. Add to appropriate collection (PUBLIC_ROUTES, PROTECTED_ROUTES, or ADMIN_ROUTES)
-3. Create the page component at `frontend/app/pages/[name].tsx`
+3. Create the page component at `frontend/app/(public|protected|...)/[name]/page.tsx`
 4. Use in components via imports from `@/routes`
 
 ## Example Route Definition
@@ -190,7 +187,7 @@ function checkRouteAccess(pathname: string, isAuthenticated: boolean) {
 ```typescript
 {
   label: "New Feature",
-  href: "/pages/new-feature",
+  href: "/new-feature",
   icon: "star",
   type: "protected",
   description: "Description of the feature",

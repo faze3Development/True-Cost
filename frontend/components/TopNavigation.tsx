@@ -7,8 +7,6 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
-  TOP_NAV_CONFIG_STORAGE_KEY,
-  TOP_NAV_CONFIG_UPDATED_EVENT,
   getVisibleNavLinksForPath,
   parseTopNavRuntimeConfig,
   type TopNavRuntimeConfig,
@@ -31,6 +29,7 @@ export default function TopNavigation({ navLinks }: TopNavigationProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user: authUser, dbUser, updateUserSetting } = useAuth();
   const initialQuery = searchParams?.get("q") ?? "";
 
   const [runtimeConfig, setRuntimeConfig] = useState<TopNavRuntimeConfig | null>(null);
@@ -58,36 +57,15 @@ export default function TopNavigation({ navLinks }: TopNavigationProps) {
   }, [debouncedQuery, initialQuery, pathname, router, searchParams]);
 
   useEffect(() => {
-    const loadRuntimeConfig = () => {
-      if (typeof window === "undefined") {
-        return;
-      }
+    const raw = dbUser?.settings?.top_nav_config;
 
-      const raw = window.localStorage.getItem(TOP_NAV_CONFIG_STORAGE_KEY);
-      if (!raw) {
-        setRuntimeConfig(null);
-        return;
-      }
+    if (!raw) {
+      setRuntimeConfig(null);
+      return;
+    }
 
-      setRuntimeConfig(parseTopNavRuntimeConfig(raw));
-    };
-
-    const onConfigUpdate = () => loadRuntimeConfig();
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === TOP_NAV_CONFIG_STORAGE_KEY) {
-        loadRuntimeConfig();
-      }
-    };
-
-    loadRuntimeConfig();
-    window.addEventListener(TOP_NAV_CONFIG_UPDATED_EVENT, onConfigUpdate);
-    window.addEventListener("storage", onStorage);
-
-    return () => {
-      window.removeEventListener(TOP_NAV_CONFIG_UPDATED_EVENT, onConfigUpdate);
-      window.removeEventListener("storage", onStorage);
-    };
-  }, []);
+    setRuntimeConfig(parseTopNavRuntimeConfig(raw));
+  }, [dbUser?.settings?.top_nav_config]);
 
   const links: NavLink[] = useMemo(() => {
     const base = navLinks ?? getVisibleNavLinksForPath(pathname ?? "/", true, true, runtimeConfig ?? undefined);
@@ -109,13 +87,13 @@ export default function TopNavigation({ navLinks }: TopNavigationProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const { user: authUser, dbUser, updateUserSetting } = useAuth();
-
   return (
     <header className="fixed top-0 z-50 w-full bg-surface/80 backdrop-blur-xl shadow-ambient">
       <div className="mx-auto flex w-full max-w-[1920px] items-center justify-between px-6 py-3">
         <div className="flex items-center gap-8">
-          <Logo />
+          <Link href="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-80">
+            <Logo />
+          </Link>
           <nav className="hidden items-center gap-6 md:flex">
             {links.map((link) => (
               <Link

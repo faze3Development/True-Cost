@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"strings"
 
@@ -19,72 +18,44 @@ const UserIDKey = "userID"
 // TokenKey is the raw firebase token containing arbitrary claims
 const TokenKey = "firebaseToken"
 
+// AuditLogger defines the interface for logging access denial attempts.
+type AuditLogger interface {
+	LogUnauthorizedAccess(c *gin.Context, resource string) error
+}
+
 // UserSyncer defines an interface to sync users from Firebase into the database.
 type UserSyncer interface {
 	GetOrCreateUser(ctx context.Context, uid, email, displayName string) (*models.User, error)
 }
 
-func logMockAuthDenied(c *gin.Context, reason string) {
-	tenantKey := c.GetString("tenantKey")
-	if tenantKey == "" {
-		tenantKey = "default"
-	}
-
-	zap.L().Warn("mock auth denied",
-		zap.String("reason", reason),
-		zap.String("client_ip", c.ClientIP()),
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-		zap.String("tenant_key", tenantKey),
-	)
-}
-
-func isLoopbackRequest(c *gin.Context) bool {
-	clientIP := net.ParseIP(c.ClientIP())
-	return clientIP != nil && clientIP.IsLoopback()
-}
-
-// EnsureAuthenticated validates Bearer tokens using Firebase Auth and syncs the user details
-func EnsureAuthenticated(client *Client, syncer UserSyncer, enableMockAuth bool) gin.HandlerFunc {
+// EnsureAuthenticated validates Bearer tokens using Firebase Auth and syncs the user details.
+// Failures are logged to the audit log for security monitoring.
+func EnsureAuthenticated(client *Client, syncer UserSyncer, enableMockAuth bool, auditLogger AuditLogger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
+			if auditLogger != nil {
+				_ = auditLogger.LogUnauthorizedAccess(c, c.Request.URL.Path)
+			}
 			c.AbortWithStatusJSON(http.StatusUnauthorized, errors.ErrUnauthorized("auth/missing_header", "Authorization header required"))
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
+			if auditLogger != nil {
+				_ = auditLogger.LogUnauthorizedAccess(c, c.Request.URL.Path)
+			}
 			c.AbortWithStatusJSON(http.StatusUnauthorized, errors.ErrUnauthorized("auth/invalid_format", "Invalid authorization header format"))
 			return
 		}
 
 		tokenString := parts[1]
 		if tokenString == "" {
+			if auditLogger != nil {
+				_ = auditLogger.LogUnauthorizedAccess(c, c.Request.URL.Path)
+			}
 			c.AbortWithStatusJSON(http.StatusUnauthorized, errors.ErrUnauthorized("auth/empty_token", "Token payload missing"))
-			return
-		}
-
-		var uid string
-
-		if enableMockAuth && tokenString == "MOCK_TOKEN" {
-			if !isLoopbackRequest(c) {
-				logMockAuthDenied(c, "non_loopback_client")
-				c.AbortWithStatusJSON(http.StatusForbidden, errors.ErrForbidden("auth/mock_forbidden", "Mock authentication is only allowed from local loopback requests"))
-				return
-			}
-
-			// Local development bypass
-			uid = "mock-user-123"
-			if syncer != nil {
-				_, err := syncer.GetOrCreateUser(c.Request.Context(), uid, "analyst@truecost.city", "Lead Analyst")
-				if err != nil {
-					c.AbortWithStatusJSON(http.StatusInternalServerError, errors.ErrInternal("auth/sync_failed", "Failed to properly provision your profile", nil))
-					return
-				}
-			}
-			c.Set(UserIDKey, uid)
-			c.Next()
 			return
 		}
 
@@ -97,6 +68,10 @@ func EnsureAuthenticated(client *Client, syncer UserSyncer, enableMockAuth bool)
 
 		token, err := client.VerifyIDToken(c.Request.Context(), tokenString)
 		if err != nil {
+			if auditLogger != nil {
+				_ = auditLogger.LogUnauthorizedAccess(c, c.Request.URL.Path)
+			}
+
 			if firebaseAuth.IsIDTokenRevoked(err) {
 				zap.L().Warn("Revoked token attempted access", zap.Error(err))
 				c.AbortWithStatusJSON(http.StatusUnauthorized, errors.ErrUnauthorized("auth/token_revoked", "The provided token has been revoked"))
@@ -107,8 +82,6 @@ func EnsureAuthenticated(client *Client, syncer UserSyncer, enableMockAuth bool)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, errors.ErrUnauthorized("auth/invalid_token", "The provided token is invalid or expired"))
 			return
 		}
-
-		uid = token.UID
 
 		// Sync User to Postgres gracefully
 		if syncer != nil {
@@ -148,18 +121,7 @@ func OptionalAuth(client *Client, syncer UserSyncer, enableMockAuth bool) gin.Ha
 			if len(parts) == 2 && parts[0] == "Bearer" {
 				tokenString := parts[1]
 
-				if enableMockAuth && tokenString == "MOCK_TOKEN" {
-					if !isLoopbackRequest(c) {
-						logMockAuthDenied(c, "non_loopback_client")
-						c.AbortWithStatusJSON(http.StatusForbidden, errors.ErrForbidden("auth/mock_forbidden", "Mock authentication is only allowed from local loopback requests"))
-						return
-					}
-
-					if syncer != nil {
-						_, _ = syncer.GetOrCreateUser(c.Request.Context(), "mock-user-123", "analyst@truecost.city", "Lead Analyst")
-					}
-					c.Set(UserIDKey, "mock-user-123")
-				} else if client != nil {
+				if client != nil {
 					token, err := client.VerifyIDToken(c.Request.Context(), tokenString)
 					if err == nil {
 						// Success

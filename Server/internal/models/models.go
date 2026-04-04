@@ -151,3 +151,20 @@ type UserSavedProperty struct {
 	UserID     string `gorm:"type:uuid;not null;uniqueIndex:idx_user_property" json:"user_id"`
 	PropertyID string `gorm:"type:uuid;not null;uniqueIndex:idx_user_property" json:"property_id"`
 }
+
+// AuditLog records all access denial attempts for security and compliance.
+// Immutable log of who attempted what action and was denied.
+type AuditLog struct {
+	BaseModel
+	TenantKey      string `gorm:"not null;default:'default';index" json:"tenant_key"`
+	UserID         string `gorm:"type:uuid;index" json:"user_id,omitempty"`  // nil if unauthorized
+	Email          string `gorm:"index" json:"email,omitempty"`              // captured for audit trail
+	Action         string `gorm:"not null;index" json:"action"`              // e.g., "ROUTE_ACCESS_DENIED", "ROLE_CHECK_FAILED"
+	Resource       string `gorm:"not null" json:"resource"`                  // e.g., "/admin/users", "/api/admin/settings"
+	RequiredRole   string `gorm:"index" json:"required_role,omitempty"`      // e.g., "admin"
+	UserRole       string `gorm:"index" json:"user_role,omitempty"`          // user's actual role
+	Reason         string `gorm:"type:text" json:"reason,omitempty"`         // human-readable reason
+	IPAddress      string `gorm:"index" json:"ip_address,omitempty"`         // client IP for geo/pattern analysis
+	UserAgent      string `gorm:"type:text" json:"user_agent,omitempty"`     // browser info
+	statusCode     int    `json:"status_code,omitempty"`                     // HTTP status (401, 403, etc.)
+}

@@ -4,8 +4,13 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 
-export function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+interface RequireAuthProps {
+  children: React.ReactNode;
+  requiredRole?: string; // Optional: enforce specific role (e.g., "admin")
+}
+
+export function RequireAuth({ children, requiredRole }: RequireAuthProps) {
+  const { user, dbUser, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -17,13 +22,25 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router, pathname]);
 
+  // Check role if specified
+  useEffect(() => {
+    if (!loading && user && requiredRole) {
+      const userRole = (dbUser?.role || "").toLowerCase();
+      const required = requiredRole.toLowerCase();
+
+      if (userRole !== required) {
+        router.push("/unauthorized");
+      }
+    }
+  }, [dbUser, loading, user, requiredRole, router]);
+
   if (loading) {
     return (
-       <div className="flex items-center justify-center min-h-screen w-full bg-surface">
-         <div className="text-on-surface/60 font-medium tracking-widest text-sm uppercase animate-pulse">
-           Authenticating...
-         </div>
-       </div>
+      <div className="flex items-center justify-center min-h-screen w-full bg-surface">
+        <div className="text-on-surface/60 font-medium tracking-widest text-sm uppercase animate-pulse">
+          Authenticating...
+        </div>
+      </div>
     );
   }
 

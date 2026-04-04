@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   SIDEBAR_NAV_LINKS,
-  TOP_NAV_CONFIG_STORAGE_KEY,
-  TOP_NAV_CONFIG_UPDATED_EVENT,
   createDefaultTopNavRuntimeConfig,
   getAllTopNavCandidates,
   parseTopNavRuntimeConfig,
@@ -56,15 +54,6 @@ const parseSavedConfig = (savedConfig: unknown): TopNavRuntimeConfig | null => {
   }
 };
 
-const persistLocalConfig = (config: TopNavRuntimeConfig) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(TOP_NAV_CONFIG_STORAGE_KEY, JSON.stringify(config));
-  window.dispatchEvent(new Event(TOP_NAV_CONFIG_UPDATED_EVENT));
-};
-
 export default function TopNavConfigEditor({ savedConfig, onSaveConfig }: TopNavConfigEditorProps) {
   const fallbackConfig = useMemo(() => createDefaultTopNavRuntimeConfig(), []);
   const candidates = useMemo(() => getAllTopNavCandidates(), []);
@@ -84,17 +73,6 @@ export default function TopNavConfigEditor({ savedConfig, onSaveConfig }: TopNav
     if (fromSaved) {
       setConfig(cloneConfig(fromSaved));
       return;
-    }
-
-    if (typeof window !== "undefined") {
-      const raw = window.localStorage.getItem(TOP_NAV_CONFIG_STORAGE_KEY);
-      if (raw) {
-        const fromLocalStorage = parseTopNavRuntimeConfig(raw);
-        if (fromLocalStorage) {
-          setConfig(cloneConfig(fromLocalStorage));
-          return;
-        }
-      }
     }
 
     setConfig(cloneConfig(fallbackConfig));
@@ -411,7 +389,6 @@ export default function TopNavConfigEditor({ savedConfig, onSaveConfig }: TopNav
   const handleReset = () => {
     const reset = createDefaultTopNavRuntimeConfig();
     setConfig(cloneConfig(reset));
-    persistLocalConfig(reset);
     setSaveState("saved");
     setSaveMessage("Reset to default navigation layout.");
   };
@@ -421,13 +398,12 @@ export default function TopNavConfigEditor({ savedConfig, onSaveConfig }: TopNav
     setSaveMessage("");
 
     try {
-      persistLocalConfig(config);
       await onSaveConfig(config);
       setSaveState("saved");
       setSaveMessage("Navigation layout saved. Header updates are now live.");
     } catch {
       setSaveState("error");
-      setSaveMessage("Could not save to profile, but local changes were applied.");
+      setSaveMessage("Could not save to profile. Please try again.");
     }
   };
 

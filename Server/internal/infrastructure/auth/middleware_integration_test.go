@@ -12,7 +12,7 @@ func newProtectedTestRouter(enableMockAuth bool) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	protected := r.Group("/api/v1")
-	protected.Use(EnsureAuthenticated(nil, nil, enableMockAuth))
+	protected.Use(EnsureAuthenticated(nil, nil, enableMockAuth, nil))
 	protected.GET("/properties/:id/units", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})

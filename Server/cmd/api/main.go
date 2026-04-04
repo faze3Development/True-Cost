@@ -107,11 +107,17 @@ func main() {
 	}
 
 	// Initialize Firebase Auth
-	// Passing an empty string so it tries to use GOOGLE_APPLICATION_CREDENTIALS from env
+	// Fail fast: protected routes require server-side token verification in all environments.
 	ctxInit := context.Background()
-	authClient, err := auth.NewClient(ctxInit, "")
+	authClient, err := auth.NewClient(ctxInit, cfg.FirebaseProjectID, cfg.FirebaseCredentialsFile, cfg.FirebaseCredentialsJSON)
 	if err != nil {
-		zap.L().Warn("firebase auth failed to initialize - protected routes will fail", zap.Error(err))
+		zap.L().Error("firebase auth initialization failed",
+			zap.Error(err),
+			zap.String("firebase_project_id", cfg.FirebaseProjectID),
+			zap.Bool("using_credentials_file", cfg.FirebaseCredentialsFile != ""),
+			zap.Bool("using_credentials_json", cfg.FirebaseCredentialsJSON != ""),
+		)
+		os.Exit(1)
 	}
 
 	router := api.NewRouter(database, cfg, authClient)

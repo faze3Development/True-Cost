@@ -10,6 +10,7 @@ import { usePropertyUnits } from "@/hooks/usePropertyUnits";
 import { useUnitHistory } from "@/hooks/useUnitHistory";
 import { useBookmarks } from "@/hooks/useBookmarks";
 import PriceHistoryChart from "@/components/PriceHistoryChart";
+import DistrictMapButton from "@/components/DistrictMapButton";
 import clsx from "clsx";
 
 const currency = new Intl.NumberFormat("en-US", {
@@ -44,6 +45,9 @@ export default function PropertyDetailsPage() {
   const hasLoadError = propertyError || unitsError || historyError;
   const hasUnits = Boolean(units && units.length > 0);
   const hasHistory = Boolean(history && history.length > 0);
+  const districtLabel = property
+    ? [property.city, property.state].filter(Boolean).join(", ")
+    : "District View";
 
   const latestHistory = history?.[history.length - 1];
 
@@ -416,14 +420,7 @@ export default function PropertyDetailsPage() {
                 src={property?.image_url || "https://lh3.googleusercontent.com/aida-public/AB6AXuDksTIubSvCZyevqYX_iiUG5SJGCOe0hGrKxaAXfRctLlcsJqRoKcRE7HHF4PhbzEiAXsTJyZAeur0oQk_yYd8yJI6cicKvx08jpzQOz0I90AujDpAAatR3evjW9mTwsjpB37d71nRwZhO2qrsIi_iTVkUTYifSU5Y3naxx8TlVnykVUzleyOLYtAWKpj54cmowR54DiGKzTgO-k4lm5RVs1IgVLVrLlRmvaAhsZt8n2vyvw2UbMRF17bqrrE6IgOfYYC_xgu8GxoOo"}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent" />
-              <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-sm" aria-hidden="true">
-                  location_on
-                </span>
-                <span className="text-[10px] font-black uppercase tracking-tight text-on-surface">
-                  District View
-                </span>
-              </div>
+              <DistrictMapButton district={districtLabel} className="absolute bottom-4 left-4" />
             </div>
           </aside>
         </div>

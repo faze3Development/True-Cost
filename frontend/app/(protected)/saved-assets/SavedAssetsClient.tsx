@@ -161,9 +161,19 @@ function Sparkline({ propertyId }: { propertyId: string }) {
   if (!points.length) {
     return (
       <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-surface-container px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
-        <span className="material-symbols-outlined text-base" aria-hidden>
-          insights_off
-        </span>
+        <svg
+          className="h-4 w-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M4 16l4-4 3 3 5-5" />
+          <path d="M3 3l18 18" />
+        </svg>
         No history yet
       </span>
     );

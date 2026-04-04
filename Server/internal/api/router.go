@@ -31,8 +31,12 @@ func NewRouter(db *gorm.DB, cfg *config.Config, authClient *auth.Client) *gin.En
 	r.Use(requestLogger())
 	r.Use(resolveTenant())
 
-	// Initialize Audit Logger
+	// Initialize Audit Logger (for rate limiting and admin events)
 	auditLogger := audit.NewAuditLogger(db, zap.L())
+
+	// Initialize Audit Service for access denial logging
+	auditRepo := audit.NewRepository(db, zap.L())
+	auditSvc := audit.NewService(auditRepo, zap.L())
 
 	// Apply Global Error Interceptor
 	r.Use(errors.GlobalErrorHandler())
@@ -81,7 +85,7 @@ func NewRouter(db *gorm.DB, cfg *config.Config, authClient *auth.Client) *gin.En
 
 		// Protected Routes
 		protected := v1.Group("")
-		protected.Use(auth.EnsureAuthenticated(authClient, userModule.Service, cfg.EnableMockAuth))
+		protected.Use(auth.EnsureAuthenticated(authClient, userModule.Service, cfg.EnableMockAuth, auditSvc))
 		{
 
 			// business Validation Example (Ensuring parameterized routes aren't empty)

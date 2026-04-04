@@ -21,11 +21,12 @@ const alerts = [
 ];
 
 export default function SettingsPage() {
-  const { mapStyle, setMapStyle } = useMapStyle();
+  const { setMapStyle } = useMapStyle();
   const { user: authUser, dbUser, updateUserSetting } = useAuth();
   const createPortalMutation = useCreateCustomerPortalSession();
   const createCheckoutMutation = useCreateCheckoutSession();
   const toast = useToast();
+  const isAdminUser = (dbUser?.role || "").toLowerCase() === "admin";
 
   useEffect(() => {
     if (dbUser?.settings?.map_style) {
@@ -106,17 +107,19 @@ export default function SettingsPage() {
           <header className="space-y-2">
             <h2 className="text-4xl font-extrabold tracking-tighter">Account Architecture</h2>
             <p className="text-on-surface-variant">Manage your institutional presence and data preferences.</p>
-            <div>
-              <Link
-                href="/admin"
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-white transition hover:bg-primary/90"
-              >
-                <span className="material-symbols-outlined text-sm" aria-hidden>
-                  admin_panel_settings
-                </span>
-                Open Admin Control Center
-              </Link>
-            </div>
+            {isAdminUser ? (
+              <div>
+                <Link
+                  href="/admin"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-white transition hover:bg-primary/90"
+                >
+                  <span className="material-symbols-outlined text-sm" aria-hidden>
+                    admin_panel_settings
+                  </span>
+                  Open Admin Control Center
+                </Link>
+              </div>
+            ) : null}
             <div className="lg:hidden rounded-lg bg-surface-container p-4 text-sm text-on-surface-variant">Navigation is docked on desktop.</div>
           </header>
 

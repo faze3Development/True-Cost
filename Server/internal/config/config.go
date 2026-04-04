@@ -59,6 +59,11 @@ type Config struct {
 	// Admin bootstrap
 	AdminBootstrapSecret string
 
+	// Firebase Auth (server-side token verification)
+	FirebaseProjectID       string
+	FirebaseCredentialsFile string
+	FirebaseCredentialsJSON string
+
 	// Dev bypass
 	EnableMockAuth bool
 }
@@ -104,6 +109,11 @@ func Load() (*Config, error) {
 		StripeMode:          getEnv("STRIPE_MODE", "test"),
 
 		AdminBootstrapSecret: getEnv("ADMIN_BOOTSTRAP_SECRET", ""),
+
+		FirebaseProjectID:       getEnv("FIREBASE_PROJECT_ID", getEnv("GOOGLE_CLOUD_PROJECT", getEnv("GCLOUD_PROJECT", ""))),
+		FirebaseCredentialsFile: getEnv("FIREBASE_CREDENTIALS_FILE", getEnv("GOOGLE_APPLICATION_CREDENTIALS", "")),
+		FirebaseCredentialsJSON: getEnv("FIREBASE_CREDENTIALS_JSON", ""),
+
 		EnableMockAuth:       allowMockAuth,
 	}
 

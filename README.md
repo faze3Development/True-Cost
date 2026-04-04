@@ -177,6 +177,11 @@ Server configuration is loaded from environment variables. The only **required**
 | `PORT` | `8080` | HTTP listen port |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated allowlist for CORS |
 | `ADMIN_BOOTSTRAP_SECRET` | *(empty)* | One-time secret required to call `POST /api/v1/admin/bootstrap` for first admin promotion |
+| `FIREBASE_PROJECT_ID` | *(empty)* | Firebase project ID used by backend token verification |
+| `FIREBASE_CREDENTIALS_FILE` | *(empty)* | Path to Firebase service-account JSON for Admin SDK |
+| `FIREBASE_CREDENTIALS_JSON` | *(empty)* | Optional single-line JSON credentials instead of file path |
+
+Server-side Firebase token verification is mandatory for protected routes. If Firebase Admin SDK cannot initialize, the API exits at startup.
 
 In non-production environments, both Go services load local env files automatically:
 
@@ -220,11 +225,15 @@ docker compose up -d postgres redis
 go run ./Server/cmd/api
 ```
 
+If you prefer Make, `make dev` from `Server/` now runs the API entrypoint.
+
 ### Run the Worker (optional)
 
 ```bash
 go run ./Server
 ```
+
+To run the worker via Make, use `make dev-worker` from `Server/`.
 
 The worker exposes `POST /enqueue` on port 8081. Trigger a scrape manually with:
 
@@ -306,6 +315,9 @@ docker build --target worker -t true-cost-worker .
 # API
 docker run -p 8080:8080 \
   -e DB_HOST=<host> -e DB_PASSWORD=<pass> \
+        -e FIREBASE_PROJECT_ID=<firebase-project-id> \
+        -e FIREBASE_CREDENTIALS_FILE=/run/secrets/firebase-service-account.json \
+        -v $(pwd)/Server/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro \
   true-cost-api
 
 # Worker
@@ -323,6 +335,15 @@ Both images are designed for GCP Cloud Run:
 - The **Worker** image (`chromedp/headless-shell`) includes all Chrome dependencies required by chromedp and runs with `--no-sandbox` for container compatibility.
 - Structured JSON logs are written to stdout for native Cloud Logging ingestion.
 - A **Cloud Scheduler** job should be configured to `POST /enqueue` on the Worker service URL on your desired scrape cadence.
+
+### Docker local auth setup (real Firebase tokens)
+
+1. Download a Firebase service-account key JSON for your project.
+2. Place it at `Server/firebase-service-account.json` (gitignored).
+3. Set `FIREBASE_PROJECT_ID` in `Server/.env`.
+4. Start services with `docker compose up --build`.
+
+With this setup, backend auth verifies signed Firebase ID tokens server-side on every protected request.
 
 ---
 

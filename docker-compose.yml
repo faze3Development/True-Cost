@@ -45,6 +45,9 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       REDIS_ADDR: redis:6379
+      FIREBASE_CREDENTIALS_FILE: /run/secrets/firebase-service-account.json
+    volumes:
+      - ./Server/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
     depends_on:
       postgres:
         condition: service_healthy

@@ -24,8 +24,7 @@ export interface TopNavRuntimeConfig {
   pageRules: TopNavPageRule[];
 }
 
-export const TOP_NAV_CONFIG_STORAGE_KEY = "topNavRuntimeConfig";
-export const TOP_NAV_CONFIG_UPDATED_EVENT = "top-nav-config-updated";
+const REMOVED_TOP_NAV_LABELS = new Set(["data studio", "portfolio", "property insights"]);
 
 /**
  * Public routes accessible to all users.
@@ -37,13 +36,6 @@ export const PUBLIC_ROUTES: Route[] = [
     icon: "map",
     type: "public",
     description: "Interactive property map and market overview",
-  },
-  {
-    label: "Property Insights",
-    href: "/property-insights",
-    icon: "analytics",
-    type: "public",
-    description: "Deep dive analytics for individual properties",
   },
   {
     label: "Cost Calculator",
@@ -120,11 +112,6 @@ export const ADMIN_ROUTES: Route[] = [
  */
 export const TOP_NAV_LINKS: Route[] = [
   {
-    label: "Portfolio",
-    href: "/portfolio",
-    type: "public",
-  },
-  {
     label: "Analytics",
     href: "/price-index",
     type: "public",
@@ -151,7 +138,6 @@ export const DEFAULT_TOP_NAV_SETS: Record<string, Route[]> = {
   savedAssets: [
     { label: "Dashboard", href: "/", type: "public" },
     { label: "Market Overviews", href: "/price-index", type: "protected" },
-    { label: "Data Studio", href: "/reports", type: "protected" },
   ],
 };
 
@@ -191,6 +177,7 @@ const sanitizeTopNavSetCollection = (value: unknown): Record<string, Route[]> =>
 
     const sanitized = setValue
       .filter(isNavLikeObject)
+      .filter((link) => !REMOVED_TOP_NAV_LABELS.has(link.label.trim().toLowerCase()))
       .map((link) => ({
         label: link.label,
         href: link.href,
@@ -220,58 +207,8 @@ const sanitizeTopNavPageRules = (value: unknown): TopNavPageRule[] => {
   });
 };
 
-const parseTopNavSets = (): Record<string, Route[]> => {
-  const raw = process.env.NEXT_PUBLIC_TOP_NAV_SETS_JSON;
-
-  if (!raw) {
-    return DEFAULT_TOP_NAV_SETS;
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-
-    if (!parsed || typeof parsed !== "object") {
-      return DEFAULT_TOP_NAV_SETS;
-    }
-
-    const next = sanitizeTopNavSetCollection(parsed);
-
-    if (!next.default) {
-      next.default = DEFAULT_TOP_NAV_SETS.default;
-    }
-
-    return Object.keys(next).length > 0 ? next : DEFAULT_TOP_NAV_SETS;
-  } catch (error) {
-    console.warn("Invalid NEXT_PUBLIC_TOP_NAV_SETS_JSON. Falling back to default top nav sets.", error);
-    return DEFAULT_TOP_NAV_SETS;
-  }
-};
-
-const parseTopNavPageRules = (): TopNavPageRule[] => {
-  const raw = process.env.NEXT_PUBLIC_TOP_NAV_PAGE_RULES_JSON;
-
-  if (!raw) {
-    return DEFAULT_TOP_NAV_PAGE_RULES;
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-
-    if (!Array.isArray(parsed)) {
-      return DEFAULT_TOP_NAV_PAGE_RULES;
-    }
-
-    const next = sanitizeTopNavPageRules(parsed);
-
-    return next.length > 0 ? next : DEFAULT_TOP_NAV_PAGE_RULES;
-  } catch (error) {
-    console.warn("Invalid NEXT_PUBLIC_TOP_NAV_PAGE_RULES_JSON. Falling back to default page rules.", error);
-    return DEFAULT_TOP_NAV_PAGE_RULES;
-  }
-};
-
-export const TOP_NAV_SETS: Record<string, Route[]> = parseTopNavSets();
-export const TOP_NAV_PAGE_RULES: TopNavPageRule[] = parseTopNavPageRules();
+export const TOP_NAV_SETS: Record<string, Route[]> = DEFAULT_TOP_NAV_SETS;
+export const TOP_NAV_PAGE_RULES: TopNavPageRule[] = DEFAULT_TOP_NAV_PAGE_RULES;
 
 const mergeTopNavSets = (overrideSets: Record<string, Route[]> | undefined): Record<string, Route[]> => {
   if (!overrideSets) {

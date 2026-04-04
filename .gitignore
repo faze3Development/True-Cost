@@ -12,6 +12,7 @@ out.log
 # Environment files
 .env
 .env.*
+Server/firebase-service-account.json
 
 # IDE
 .idea/
