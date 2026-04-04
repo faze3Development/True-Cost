@@ -15,6 +15,7 @@ import (
 	"github.com/faze3Development/true-cost/Server/internal/infrastructure/stripe"
 	"github.com/faze3Development/true-cost/Server/internal/infrastructure/user"
 	"github.com/faze3Development/true-cost/Server/internal/models"
+	"github.com/faze3Development/true-cost/Server/internal/truecost"
 )
 
 // Handler groups route handler methods and their dependencies.
@@ -96,7 +97,7 @@ func (h *Handler) ListProperties(c *gin.Context) {
 	responses := make([]propertyResponse, 0, len(properties))
 	for _, p := range properties {
 		record := h.getLowestAdvertisedRecord(p.ID)
-		deal := buildDealAnalysis(record, p.FeeStructure)
+		deal := truecost.BuildDealAnalysis(record, p.FeeStructure)
 
 		responses = append(responses, propertyResponse{
 			ID:                 p.ID,
@@ -121,8 +122,8 @@ func (h *Handler) ListProperties(c *gin.Context) {
 }
 
 type propertyDealAnalysisResponse struct {
-	PropertyID string              `json:"propertyId"`
-	Analysis   dealAnalysisPayload `json:"analysis"`
+	PropertyID string                   `json:"propertyId"`
+	Analysis   truecost.AnalysisPayload `json:"analysis"`
 }
 
 // GetPropertyDealAnalysis returns the multi-agent, guardrailed deal-analysis payload.
@@ -148,7 +149,7 @@ func (h *Handler) GetPropertyDealAnalysis(c *gin.Context) {
 		return
 	}
 
-	analysis := buildDealAnalysis(h.getLowestAdvertisedRecord(property.ID), property.FeeStructure)
+	analysis := truecost.BuildDealAnalysis(h.getLowestAdvertisedRecord(property.ID), property.FeeStructure)
 	c.JSON(http.StatusOK, propertyDealAnalysisResponse{
 		PropertyID: property.ID,
 		Analysis:   analysis,
@@ -299,11 +300,7 @@ func (h *Handler) GetUnitHistory(c *gin.Context) {
 
 	// Compute true_cost for every record before returning.
 	for i := range records {
-		records[i].TrueCost = records[i].EffectiveRent +
-			feeStructure.TrashFee +
-			feeStructure.AmenityFee +
-			feeStructure.PackageFee +
-			feeStructure.ParkingFee
+		records[i].TrueCost = truecost.ComputeTrueCost(records[i].EffectiveRent, feeStructure)
 	}
 
 	c.JSON(http.StatusOK, records)
@@ -338,7 +335,7 @@ func (h *Handler) computePropertyPricing(propertyID string, totalFees float64) (
 		return 0, totalFees
 	}
 
-	trueCost := record.EffectiveRent + totalFees
+	trueCost := truecost.ComputeTrueCostWithFees(record.EffectiveRent, totalFees)
 	return record.AdvertisedRent, trueCost
 }
 

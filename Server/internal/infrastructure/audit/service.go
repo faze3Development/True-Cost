@@ -39,7 +39,7 @@ func (s *service) LogRouteAccessDenied(c *gin.Context, userID, email, requiredRo
 		Reason:       reason,
 		IPAddress:    s.getClientIP(c),
 		UserAgent:    c.Request.UserAgent(),
-		statusCode:   403,
+		StatusCode:   403,
 	}
 
 	if err := s.repo.LogAccessDenial(c.Request.Context(), log); err != nil {
@@ -62,7 +62,7 @@ func (s *service) LogUnauthorizedAccess(c *gin.Context, resource string) error {
 		Reason:     "Missing or invalid authentication token",
 		IPAddress:  s.getClientIP(c),
 		UserAgent:  c.Request.UserAgent(),
-		statusCode: 401,
+		StatusCode: 401,
 	}
 
 	if err := s.repo.LogAccessDenial(c.Request.Context(), log); err != nil {

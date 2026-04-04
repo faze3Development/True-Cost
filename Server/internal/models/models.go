@@ -61,6 +61,25 @@ type PriceRecord struct {
 	TrueCost float64 `gorm:"-" json:"true_cost,omitempty"`
 }
 
+// ScrapePayload stores raw scrape artifacts for stability, reprocessing, and
+// provenance without coupling downstream systems to provider-specific parsing.
+type ScrapePayload struct {
+	BaseModel
+	PropertyID          string    `gorm:"type:uuid;not null;index" json:"property_id"`
+	SourceURL           string    `gorm:"type:text;not null" json:"source_url"`
+	ExtractionVersion   string    `gorm:"not null;index" json:"extraction_version"`
+	PageTitle           string    `gorm:"type:text" json:"page_title,omitempty"`
+	RawUnitsJSON        string    `gorm:"type:text" json:"raw_units_json,omitempty"`
+	RawListingJSON      string    `gorm:"type:text" json:"raw_listing_json,omitempty"`
+	RawListingURL       string    `gorm:"type:text" json:"raw_listing_url,omitempty"`
+	RawNetworkJSONCount int       `gorm:"not null;default:0" json:"raw_network_json_count"`
+	RawCardCount        int       `gorm:"not null;default:0" json:"raw_card_count"`
+	ParsedUnitCount     int       `gorm:"not null;default:0" json:"parsed_unit_count"`
+	RawImageURL         string    `gorm:"type:text" json:"raw_image_url,omitempty"`
+	NormalizedImageURL  string    `gorm:"type:text" json:"normalized_image_url,omitempty"`
+	CapturedAt          time.Time `gorm:"not null;index" json:"captured_at"`
+}
+
 // User represents an authenticated user in the system.
 type User struct {
 	BaseModel
@@ -156,15 +175,15 @@ type UserSavedProperty struct {
 // Immutable log of who attempted what action and was denied.
 type AuditLog struct {
 	BaseModel
-	TenantKey      string `gorm:"not null;default:'default';index" json:"tenant_key"`
-	UserID         string `gorm:"type:uuid;index" json:"user_id,omitempty"`  // nil if unauthorized
-	Email          string `gorm:"index" json:"email,omitempty"`              // captured for audit trail
-	Action         string `gorm:"not null;index" json:"action"`              // e.g., "ROUTE_ACCESS_DENIED", "ROLE_CHECK_FAILED"
-	Resource       string `gorm:"not null" json:"resource"`                  // e.g., "/admin/users", "/api/admin/settings"
-	RequiredRole   string `gorm:"index" json:"required_role,omitempty"`      // e.g., "admin"
-	UserRole       string `gorm:"index" json:"user_role,omitempty"`          // user's actual role
-	Reason         string `gorm:"type:text" json:"reason,omitempty"`         // human-readable reason
-	IPAddress      string `gorm:"index" json:"ip_address,omitempty"`         // client IP for geo/pattern analysis
-	UserAgent      string `gorm:"type:text" json:"user_agent,omitempty"`     // browser info
-	statusCode     int    `json:"status_code,omitempty"`                     // HTTP status (401, 403, etc.)
+	TenantKey    string `gorm:"not null;default:'default';index" json:"tenant_key"`
+	UserID       string `gorm:"type:uuid;index" json:"user_id,omitempty"` // nil if unauthorized
+	Email        string `gorm:"index" json:"email,omitempty"`             // captured for audit trail
+	Action       string `gorm:"not null;index" json:"action"`             // e.g., "ROUTE_ACCESS_DENIED", "ROLE_CHECK_FAILED"
+	Resource     string `gorm:"not null" json:"resource"`                 // e.g., "/admin/users", "/api/admin/settings"
+	RequiredRole string `gorm:"index" json:"required_role,omitempty"`     // e.g., "admin"
+	UserRole     string `gorm:"index" json:"user_role,omitempty"`         // user's actual role
+	Reason       string `gorm:"type:text" json:"reason,omitempty"`        // human-readable reason
+	IPAddress    string `gorm:"index" json:"ip_address,omitempty"`        // client IP for geo/pattern analysis
+	UserAgent    string `gorm:"type:text" json:"user_agent,omitempty"`    // browser info
+	StatusCode   int    `json:"status_code,omitempty"`                    // HTTP status (401, 403, etc.)
 }

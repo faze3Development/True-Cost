@@ -2,8 +2,12 @@ package jobs
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/hibiken/asynq"
@@ -11,6 +15,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/faze3Development/true-cost/Server/internal/models"
+	"github.com/faze3Development/true-cost/Server/internal/retrieval/canonical"
 	"github.com/faze3Development/true-cost/Server/internal/scraper"
 )
 
@@ -85,9 +90,26 @@ func (c *Consumer) HandleScrapeProperty(ctx context.Context, task *asynq.Task) e
 		zap.String("url", payload.URL),
 	)
 
-	units, imageURL, err := scraper.ExtractPricing(payload.URL, c.scraperTimeout, c.scraperSleep, c.confidenceScore)
+	result, err := scraper.ExtractPricingDetailed(payload.URL, c.scraperTimeout, c.scraperSleep, c.confidenceScore)
 	if err != nil {
 		return fmt.Errorf("extract pricing for property %s: %w", payload.PropertyID, err)
+	}
+
+	units := result.Units
+	imageURL := result.ImageURL
+
+	if err := c.persistScrapePayload(payload.PropertyID, payload.URL, result.Metadata); err != nil {
+		zap.L().Warn("consumer: persist scrape payload failed",
+			zap.String("property_id", payload.PropertyID),
+			zap.Error(err),
+		)
+	}
+
+	if err := c.normalizeRawPayload(payload.PropertyID, result.Metadata); err != nil {
+		zap.L().Warn("consumer: canonical normalization failed",
+			zap.String("property_id", payload.PropertyID),
+			zap.Error(err),
+		)
 	}
 
 	if imageURL != "" {
@@ -150,6 +172,130 @@ func (c *Consumer) HandleScrapeProperty(ctx context.Context, task *asynq.Task) e
 	)
 
 	return nil
+}
+
+func (c *Consumer) persistScrapePayload(propertyID string, sourceURL string, meta scraper.ExtractionMetadata) error {
+	if strings.TrimSpace(meta.RawUnitsJSON) == "" && strings.TrimSpace(meta.RawListingJSON) == "" {
+		return nil
+	}
+
+	capturedAt := meta.ScrapedAt
+	if capturedAt.IsZero() {
+		capturedAt = time.Now().UTC()
+	}
+
+	payload := models.ScrapePayload{
+		PropertyID:          propertyID,
+		SourceURL:           sourceURL,
+		ExtractionVersion:   meta.ExtractionVersion,
+		PageTitle:           meta.PageTitle,
+		RawUnitsJSON:        meta.RawUnitsJSON,
+		RawListingJSON:      meta.RawListingJSON,
+		RawListingURL:       meta.RawListingURL,
+		RawNetworkJSONCount: meta.RawNetworkJSONCount,
+		RawCardCount:        meta.RawCardCount,
+		ParsedUnitCount:     meta.ParsedUnitCount,
+		RawImageURL:         meta.RawImageURL,
+		NormalizedImageURL:  meta.NormalizedImageURL,
+		CapturedAt:          capturedAt,
+	}
+
+	return c.db.Create(&payload).Error
+}
+
+func (c *Consumer) normalizeRawPayload(propertyID string, meta scraper.ExtractionMetadata) error {
+	rawPayload := strings.TrimSpace(meta.RawListingJSON)
+	if rawPayload == "" {
+		return nil
+	}
+
+	sourceName := sourceNameFromURL(meta.TargetURL)
+	raw := canonical.RawEnvelope{
+		SourceName:       sourceName,
+		SourceListingKey: listingKeyFromURL(meta.RawListingURL),
+		CapturedAt:       normalizeMetaTime(meta.ScrapedAt),
+		PayloadHash:      hashPayload(rawPayload),
+		Payload:          json.RawMessage(rawPayload),
+		Metadata: map[string]string{
+			"propertyId":    propertyID,
+			"rawPayloadRef": fmt.Sprintf("db://scrape_payloads/%s", propertyID),
+			"targetURL":     meta.TargetURL,
+			"listingURL":    meta.RawListingURL,
+		},
+	}
+
+	normalizer := canonical.NewGenericNormalizer()
+	doc, validation, err := normalizer.Normalize(context.Background(), raw)
+	if err != nil {
+		return err
+	}
+
+	errorCount, warningCount := countValidationIssues(validation)
+	logger := zap.L().Info
+	if validation.Status == canonical.ValidationFail {
+		logger = zap.L().Warn
+	}
+
+	logger("consumer: canonical normalization completed",
+		zap.String("property_id", propertyID),
+		zap.String("document_id", doc.DocumentID),
+		zap.String("validation_status", string(validation.Status)),
+		zap.Int("errors", errorCount),
+		zap.Int("warnings", warningCount),
+	)
+
+	return nil
+}
+
+func hashPayload(payload string) string {
+	digest := sha256.Sum256([]byte(payload))
+	return "sha256:" + hex.EncodeToString(digest[:])
+}
+
+func normalizeMetaTime(t time.Time) time.Time {
+	if t.IsZero() {
+		return time.Now().UTC()
+	}
+	return t.UTC()
+}
+
+func sourceNameFromURL(raw string) string {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || u.Host == "" {
+		return "unknown_source"
+	}
+	host := strings.ToLower(strings.TrimPrefix(u.Hostname(), "www."))
+	host = strings.ReplaceAll(host, ".", "_")
+	if host == "" {
+		return "unknown_source"
+	}
+	return host
+}
+
+func listingKeyFromURL(raw string) string {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return ""
+	}
+	segments := strings.Split(strings.Trim(strings.TrimSpace(u.Path), "/"), "/")
+	if len(segments) == 0 {
+		return ""
+	}
+	return segments[len(segments)-1]
+}
+
+func countValidationIssues(result canonical.ValidationResult) (int, int) {
+	errors := 0
+	warnings := 0
+	for _, issue := range result.Issues {
+		switch issue.Severity {
+		case canonical.IssueError:
+			errors++
+		case canonical.IssueWarning:
+			warnings++
+		}
+	}
+	return errors, warnings
 }
 
 // ---------------------------------------------------------------------------

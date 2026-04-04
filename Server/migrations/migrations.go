@@ -345,6 +345,15 @@ func Run(db *gorm.DB) error {
 					return tx.Exec("DROP SCHEMA IF EXISTS logs CASCADE;").Error
 				},
 			},
+			{
+				ID: "20260404_0011_scrape_payloads",
+				Migrate: func(tx *gorm.DB) error {
+					return tx.AutoMigrate(&models.ScrapePayload{})
+				},
+				Rollback: func(tx *gorm.DB) error {
+					return tx.Migrator().DropTable(&models.ScrapePayload{})
+				},
+			},
 		})
 
 		m.InitSchema(func(tx *gorm.DB) error {
@@ -367,6 +376,7 @@ func Run(db *gorm.DB) error {
 				&models.UserRole{},
 				&models.RolePermission{},
 				&models.UserSavedProperty{},
+				&models.ScrapePayload{},
 			); err != nil {
 				return fmt.Errorf("init schema: %w", err)
 			}

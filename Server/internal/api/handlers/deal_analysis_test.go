@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/faze3Development/true-cost/Server/internal/models"
+	"github.com/faze3Development/true-cost/Server/internal/truecost"
 )
 
 func TestBuildDealAnalysis_AppendsDisclaimersAndFeeDisclosure(t *testing.T) {
@@ -19,7 +20,7 @@ func TestBuildDealAnalysis_AppendsDisclaimersAndFeeDisclosure(t *testing.T) {
 		ParkingFee: 100,
 	}
 
-	payload := buildDealAnalysis(record, fees)
+	payload := truecost.BuildDealAnalysis(record, fees)
 	if payload.TotalMandatoryFees != 250 {
 		t.Fatalf("expected total mandatory fees 250, got %v", payload.TotalMandatoryFees)
 	}
@@ -46,7 +47,7 @@ func TestBuildDealAnalysis_HardBlocksInvalidInput(t *testing.T) {
 		TrashFee: 10,
 	}
 
-	payload := buildDealAnalysis(record, fees)
+	payload := truecost.BuildDealAnalysis(record, fees)
 	if payload.Guardrails.InputValidated {
 		t.Fatalf("expected input validation to fail")
 	}
